@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { 
   LayoutDashboard, 
   FileText, 
@@ -14,10 +15,15 @@ import {
   Bell,
   Search,
   Menu,
-  X
+  X,
+  CalendarDays,
+  FileSearch,
+  UserCheck,
+  MessageSquare
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Notification } from '@/components/ui/notification'
 import { useState } from 'react'
 import { UserRole } from '@prisma/client'
 
@@ -55,6 +61,30 @@ const navigation: NavItem[] = [
     name: 'Tasks',
     href: '/dashboard/tasks',
     icon: CheckSquare,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
+  },
+  {
+    name: 'Events',
+    href: '/dashboard/events',
+    icon: CalendarDays,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'FOIL Requests',
+    href: '/dashboard/foil',
+    icon: FileSearch,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
+  },
+  {
+    name: 'Persons',
+    href: '/dashboard/persons',
+    icon: UserCheck,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: MessageSquare,
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
   },
   {
@@ -141,7 +171,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {filteredNavigation.map((item) => {
                   const Icon = item.icon
                   return (
-                    <a
+                    <Link
                       key={item.name}
                       href={item.href}
                       className="flex items-center space-x-3 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
@@ -149,7 +179,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     >
                       <Icon className="h-5 w-5" />
                       <span>{item.name}</span>
-                    </a>
+                    </Link>
                   )
                 })}
               </div>
@@ -175,13 +205,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     const Icon = item.icon
                     return (
                       <li key={item.name}>
-                        <a
+                        <Link
                           href={item.href}
                           className="flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-primary"
                         >
                           <Icon className="h-5 w-5 shrink-0" />
                           {item.name}
-                        </a>
+                        </Link>
                       </li>
                     )
                   })}
@@ -258,6 +288,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* Global Notifications */}
+      <Notification />
     </div>
   )
 }

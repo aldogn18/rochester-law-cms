@@ -4,14 +4,14 @@ import React from 'react'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import { 
-  UserGroupIcon, 
-  ShieldCheckIcon, 
-  DocumentTextIcon, 
-  ScaleIcon,
-  ArrowRightIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline'
+  Users as UserGroupIcon, 
+  ShieldCheck as ShieldCheckIcon, 
+  FileText as DocumentTextIcon, 
+  Scale as ScaleIcon,
+  ArrowRight as ArrowRightIcon,
+  CheckCircle as CheckCircleIcon,
+  AlertTriangle as ExclamationTriangleIcon
+} from 'lucide-react'
 
 const demoUsers = [
   {
@@ -140,7 +140,7 @@ export default function DemoPage() {
         email,
         password: 'Demo2024!',
         redirect: true,
-        callbackUrl: '/'
+        callbackUrl: '/dashboard'
       })
     } catch (error) {
       console.error('Demo login failed:', error)

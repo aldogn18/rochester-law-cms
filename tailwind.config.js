@@ -74,6 +74,12 @@ module.exports = {
           navy: '#1e3a8a',
           blue: '#2563eb',
           gray: '#6b7280'
+        },
+        brown: {
+          600: '#8B4513',
+        },
+        amber: {
+          600: '#D97706',
         }
       },
       fontFamily: {
@@ -84,6 +90,21 @@ module.exports = {
         '18': '4.5rem',
         '88': '22rem',
         '128': '32rem',
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      screens: {
+        'xs': '475px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+        'mobile-menu': { 'max': '767px' },
+        'tablet': { 'min': '768px', 'max': '1023px' },
+        'desktop': { 'min': '1024px' },
       },
       maxWidth: {
         '8xl': '88rem',

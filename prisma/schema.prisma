@@ -1,6 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// Comprehensive Rochester Law CMS Schema
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,54 +8,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Management with Enhanced Security
 model User {
-  id             String      @id @default(cuid())
-  email          String      @unique
-  name           String?
-  hashedPassword String?
-  role           UserRole    @default(USER)
-  departmentId   String?
-  department     Department? @relation(fields: [departmentId], references: [id])
-  isActive       Boolean     @default(true)
-
-  // Security enhancements
-  employeeId     String?           @unique // Government employee ID
-  badgeNumber    String? // Physical badge number
-  title          String? // Job title
-  supervisor     String? // Supervisor name/ID
-  clearanceLevel SecurityClearance @default(PUBLIC)
-
-  // Account security
-  emailVerified        DateTime?
-  emailVerifiedToken   String?
-  passwordResetToken   String?
-  passwordResetExpires DateTime?
-  passwordLastChanged  DateTime?
-  mustChangePassword   Boolean   @default(false)
-  passwordHistory      String[] // Store hashed previous passwords
-
-  // Multi-factor authentication
-  mfaEnabled     Boolean   @default(false)
-  mfaSecret      String? // Encrypted TOTP secret
-  mfaBackupCodes String[] // Encrypted backup codes
-  mfaLastUsed    DateTime?
-
-  // Account lockout
-  failedLoginAttempts Int       @default(0)
-  accountLockedUntil  DateTime?
-  lastLoginAt         DateTime?
-  lastLoginIP         String?
-
-  // Session management
-  maxSessions Int     @default(3)
-  forceLogout Boolean @default(false)
-
-  // Compliance
-  agreementAcceptedAt     DateTime?
-  privacyPolicyAcceptedAt DateTime?
-  dataRetentionConsent    Boolean   @default(false)
-
+  id               String      @id @default(cuid())
+  email            String      @unique
+  name             String?
+  firstName        String?
+  lastName         String?
+  hashedPassword   String?
+  role             UserRole    @default(USER)
+  departmentId     String?
+  department       Department? @relation(fields: [departmentId], references: [id])
+  isActive         Boolean     @default(true)
+  securityLevel    SecurityLevel @default(BASIC)
+  mfaEnabled       Boolean     @default(false)
+  lastLogin        DateTime?
+  phoneNumber      String?
+  jobTitle         String?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -65,56 +32,22 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  // Case Management Relations
-  assignedCases     Case[]             @relation("AssignedAttorney")
-  paralegalCases    Case[]             @relation("AssignedParalegal")
-  createdCases      Case[]             @relation("CreatedBy")
-  caseNotes         CaseNote[]
-  tasks             Task[]
-  assignedTasks     Task[]             @relation("AssignedTask")
-  createdTasks      Task[]             @relation("CreatedTask")
-  documents         Document[]
-  reviewedDocuments Document[]         @relation("DocumentReviewer")
-  folders           DocumentFolder[]
-  caseDocuments     CaseDocument[]
-  documentLinks     DocumentLink[]
-  custodyLogs       CustodyLog[]
-  templates         DocumentTemplate[]
-  taskTemplates     TaskTemplate[]
-  activities        Activity[]
-  notifications     Notification[]
-  savedSearches     SavedSearch[]
-
-  // Calendar and Event Relations
-  calendarEvents CalendarEvent[]
-  createdEvents  CalendarEvent[] @relation("EventCreatedBy")
-  eventAttendees EventAttendee[]
-  reminders      Reminder[]
-
-  // Client Department Portal Relations
-  assignedRequests   LegalRequest[]      @relation("AssignedLegalRequests")
-  reviewedRequests   LegalRequest[]      @relation("ReviewedLegalRequests")
-  requestDocuments   RequestDocument[]
-  sentMessages       DepartmentMessage[] @relation("SentMessages")
-  messageAttachments MessageAttachment[]
-  requestUpdates     RequestUpdate[]
-
-  // Task Management Relations
-  taskComments    TaskComment[]
-  taskAttachments TaskAttachment[]
-
-  // Calendar Relations
-  eventAttachments EventAttachment[]
-
-  // Security Relations
-  auditLogs        AuditLog[]        @relation("AuditUser")
-  performedAudits  AuditLog[]        @relation("AuditPerformer")
-  loginHistory     LoginHistory[]
-  userSessions     UserSession[]
-  permissionGrants PermissionGrant[]
-  fieldAccess      FieldAccessLog[]
-  foilRequests     FOILRequest[]
-  dataExports      DataExport[]
+  // Relations
+  assignedCases        Case[] @relation("AssignedAttorney")
+  paralegalCases       Case[] @relation("AssignedParalegal")
+  createdCases         Case[] @relation("CreatedBy")
+  notes                Note[]
+  events               CaseEvent[]
+  tasks                Task[]
+  assignedTasks        Task[] @relation("AssignedTo")
+  documentReviews      DocumentReview[]
+  auditLogs            AuditLog[]
+  createdDocuments     Document[] @relation("CreatedBy")
+  notifications        Notification[]
+  approvedDocuments    Document[] @relation("ApprovedDocuments")
+  approvedMotionBriefs MotionBrief[] @relation("ApprovedMotionBriefs") 
+  interAgencyRequests  InterAgencyRequest[] @relation("InterAgencyRequests")
+  createdPersons       Person[]
 
   @@map("users")
 }
@@ -125,12 +58,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -158,931 +91,605 @@ model VerificationToken {
   @@map("verificationtokens")
 }
 
-// Multi-tenant Department Management
 model Department {
   id          String  @id @default(cuid())
   name        String
-  code        String  @unique // e.g., "LEGAL", "PLANNING", "FINANCE"
+  code        String  @unique
   description String?
   isActive    Boolean @default(true)
-
-  // Contact information for client departments
-  contactName  String?
-  contactEmail String?
-  contactPhone String?
-
-  // Portal settings
-  portalEnabled   Boolean @default(true)
-  canRequestLegal Boolean @default(true)
+  contactInfo String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users         User[]
-  cases         Case[]
-  templates     DocumentTemplate[]
-  taskTemplates TaskTemplate[]
-  legalRequests LegalRequest[]
-  messages      DepartmentMessage[]
+  users              User[]
+  cases              Case[]
+  interAgencyRequests InterAgencyRequest[]
 
   @@map("departments")
 }
 
-// Person/Entity Management
+// Person/Entity Management - Core Foundation
 model Person {
-  id   String     @id @default(cuid())
-  type PersonType @default(INDIVIDUAL)
-
-  // Individual fields
-  firstName   String?
-  lastName    String?
-  middleName  String?
-  suffix      String?
-  dateOfBirth DateTime?
-
-  // Organization fields
-  organizationName String?
-  organizationType String?
-
-  // Common contact information
-  email  String?
-  phone  String?
-  mobile String?
-  fax    String?
-
-  // Address information
-  addressLine1 String?
-  addressLine2 String?
-  city         String?
-  state        String?
-  postalCode   String?
-  country      String? @default("USA")
-
-  // Professional information
-  jobTitle String?
-  company  String?
-  bar      String? // Bar association number
-  license  String? // Professional license number
-
-  // Additional information
-  notes    String?  @db.Text
-  tags     String[] // For categorization
-  isActive Boolean  @default(true)
+  id            String      @id @default(cuid())
+  type          PersonType  @default(INDIVIDUAL)
+  firstName     String?
+  lastName      String?
+  middleName    String?
+  suffix        String?
+  businessName  String?
+  taxId         String?
+  ssn           String?     // Encrypted
+  dateOfBirth   DateTime?
+  
+  // Contact Information
+  primaryEmail    String?
+  secondaryEmail  String?
+  primaryPhone    String?
+  secondaryPhone  String?
+  faxNumber       String?
+  website         String?
+  
+  // Address Information
+  addresses       Address[]
+  
+  // Professional Information
+  occupation      String?
+  employer        String?
+  licenseNumber   String?
+  barNumber       String?
+  
+  isActive        Boolean     @default(true)
+  isConfidential  Boolean     @default(false)
+  securityLevel   SecurityLevel @default(BASIC)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
 
   // Relations
-  casePersons CasePerson[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  caseInvolvements CasePersonInvolvement[]
+  notes           Note[]
+  events          CaseEvent[]
 
   @@map("persons")
 }
 
-// Junction table for Case-Person relationships
-model CasePerson {
-  id        String         @id @default(cuid())
-  caseId    String
-  case      Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  personId  String
-  person    Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
-  role      CasePersonRole
-  isPrimary Boolean        @default(false)
-  notes     String?        @db.Text
-  startDate DateTime?
-  endDate   DateTime?
-
+model Address {
+  id          String      @id @default(cuid())
+  type        AddressType @default(PRIMARY)
+  street1     String
+  street2     String?
+  city        String
+  state       String
+  zipCode     String
+  country     String      @default("USA")
+  isActive    Boolean     @default(true)
+  
+  personId    String?
+  person      Person?     @relation(fields: [personId], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([caseId, personId, role])
-  @@map("case_persons")
+  @@map("addresses")
 }
 
-// Case Management - Enhanced
+// Enhanced Case Management
 model Case {
-  id          String       @id @default(cuid())
-  caseNumber  String       @unique
-  title       String
-  description String?      @db.Text
-  status      CaseStatus   @default(OPEN)
-  priority    CasePriority @default(MEDIUM)
-  caseType    CaseType
-
-  // Enhanced case categorization
-  subType      String? // Subcategory within case type
-  practiceArea String? // Practice area
-  jurisdiction String? // Court or jurisdiction
-  courtCase    String? // Court case number
-
-  // Multi-tenant
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
-
+  id                String      @id @default(cuid())
+  caseNumber        String      @unique
+  title             String
+  description       String?
+  status            CaseStatus  @default(OPEN)
+  priority          Priority    @default(MEDIUM)
+  caseType          CaseType    @default(GENERAL)
+  subType           String?
+  
+  // Financial Information
+  estimatedValue    Float?
+  actualCost        Float?
+  budgetAllocated   Float?
+  billingRate       Float?
+  
+  // Dates
+  dateOpened        DateTime    @default(now())
+  dateClosed        DateTime?
+  dueDate           DateTime?
+  statuteOfLimitations DateTime?
+  
   // Assignment
-  assignedToId String? // Primary attorney
-  assignedTo   User?   @relation("AssignedAttorney", fields: [assignedToId], references: [id])
-  paralegalId  String? // Assigned paralegal
-  paralegal    User?   @relation("AssignedParalegal", fields: [paralegalId], references: [id])
-  createdById  String
-  createdBy    User    @relation("CreatedBy", fields: [createdById], references: [id])
-
-  // Important dates - Enhanced
-  filedDate           DateTime?
-  dueDate             DateTime?
-  closedDate          DateTime?
-  statueOfLimitations DateTime?
-  discoveryDeadline   DateTime?
-  trialDate           DateTime?
-
-  // Financial
-  estimatedValue Decimal? @db.Decimal(12, 2)
-  actualCost     Decimal? @db.Decimal(12, 2)
-  budgetAmount   Decimal? @db.Decimal(12, 2)
-  billingRate    Decimal? @db.Decimal(8, 2)
-
-  // Case outcome tracking
-  outcome    CaseOutcome?
-  resolution String?      @db.Text
-
-  // Metadata for search and reporting
-  tags         String[] // Searchable tags
-  customFields Json? // Department-specific fields
-
+  assignedAttorneyId  String?
+  assignedAttorney    User?     @relation("AssignedAttorney", fields: [assignedAttorneyId], references: [id])
+  assignedParalegalId String?
+  assignedParalegal   User?     @relation("AssignedParalegal", fields: [assignedParalegalId], references: [id])
+  
+  // Department
+  clientDepartmentId  String?
+  clientDepartment    Department? @relation(fields: [clientDepartmentId], references: [id])
+  
+  // Security
+  confidentialityLevel SecurityLevel @default(BASIC)
+  isSealed            Boolean   @default(false)
+  
+  // Tracking
+  createdById       String?
+  createdBy         User?     @relation("CreatedBy", fields: [createdById], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations - Enhanced
-  casePersons     CasePerson[]
-  documents       Document[]
-  folders         DocumentFolder[]
-  linkedDocuments CaseDocument[]
-  notes           CaseNote[]
-  tasks           Task[]
-  events          CaseEvent[]
-  calendarEvents  CalendarEvent[]
-  activities      Activity[]
-  searchResults   SavedSearch[]
-  messages        DepartmentMessage[]
-  notifications   Notification[]
-
-  // Client portal integration
-  legalRequest LegalRequest?
+  // Relations
+  personInvolvements  CasePersonInvolvement[]
+  notes              Note[]
+  events             CaseEvent[]
+  documents          Document[]
+  tasks              Task[]
+  foilRequests       FoilRequest[]
+  eDiscoveryItems    EDiscoveryItem[]
+  physicalFiles      PhysicalFile[]
+  interAgencyRequests InterAgencyRequest[]
 
   @@map("cases")
 }
 
-// Saved Search functionality
-model SavedSearch {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  filters     Json // Search criteria and filters
-  isPublic    Boolean @default(false)
-
-  // Owner
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Optional case association
-  caseId String?
-  case   Case?   @relation(fields: [caseId], references: [id])
-
+model CasePersonInvolvement {
+  id              String            @id @default(cuid())
+  caseId          String
+  case            Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId        String
+  person          Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  role            InvolvementRole   @default(OTHER)
+  description     String?
+  isActive        Boolean           @default(true)
+  dateStarted     DateTime          @default(now())
+  dateEnded       DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("saved_searches")
+  @@unique([caseId, personId, role])
+  @@map("case_person_involvements")
 }
 
-model Document {
-  id           String       @id @default(cuid())
-  name         String
-  description  String?
-  fileName     String
-  filePath     String
-  mimeType     String
-  fileSize     Int
-  documentType DocumentType @default(OTHER)
-
-  // Multi-tenant via case
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  // Folder organization
-  folderId String?
-  folder   DocumentFolder? @relation(fields: [folderId], references: [id])
-
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  // Enhanced security and classification
-  isConfidential Boolean       @default(false)
-  isPrivileged   Boolean       @default(false)
-  isRedacted     Boolean       @default(false)
-  securityLevel  SecurityLevel @default(INTERNAL)
-
-  // Categorization and discovery
-  tags       String[] // For categorization and search
-  categories String[] // Legal categories (contracts, pleadings, etc.)
-  keywords   String[] // OCR extracted keywords
-
-  // Version control
-  version  String     @default("1.0")
-  parentId String?
-  parent   Document?  @relation("DocumentVersions", fields: [parentId], references: [id])
-  versions Document[] @relation("DocumentVersions")
-
-  // OCR and content
-  ocrText       String? @db.Text // Extracted text from OCR
-  ocrConfidence Float? // OCR confidence score (0-1)
-  hasOcrError   Boolean @default(false)
-
-  // E-discovery
-  batesNumber  String? // Bates stamping for discovery
-  discoverySet String? // Discovery package identifier
-  custodian    String? // Document custodian for chain of custody
-
-  // Document status
-  status       DocumentStatus @default(ACTIVE)
-  reviewStatus ReviewStatus   @default(PENDING)
-  reviewerId   String?
-  reviewer     User?          @relation("DocumentReviewer", fields: [reviewerId], references: [id])
-  reviewNotes  String?        @db.Text
-
-  // Linking and relationships
-  linkedCases    CaseDocument[] // Documents can be linked to multiple cases
-  linkedDocs     DocumentLink[] @relation("SourceDocument")
-  linkedFromDocs DocumentLink[] @relation("LinkedDocument")
-
-  // Chain of custody
-  custodyLogs CustodyLog[]
-
-  // Email integration
-  emailId      String? // If document originated from email
-  emailSubject String?
-  emailDate    DateTime?
-  emailFrom    String?
-  emailTo      String[]
-
+// Multi-user Notes System
+model Note {
+  id          String    @id @default(cuid())
+  title       String?
+  content     String
+  type        NoteType  @default(GENERAL)
+  isPrivate   Boolean   @default(false)
+  priority    Priority  @default(MEDIUM)
+  tags        String?   // JSON array stored as string
+  
+  // Relations
+  caseId      String?
+  case        Case?     @relation(fields: [caseId], references: [id])
+  personId    String?
+  person      Person?   @relation(fields: [personId], references: [id])
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  // Metadata
+  isConfidential Boolean @default(false)
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("notes")
+}
+
+// Comprehensive Event Tracking
+model CaseEvent {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  type        EventType   @default(GENERAL)
+  status      EventStatus @default(SCHEDULED)
+  
+  // Date/Time Information
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean     @default(false)
+  timezone    String      @default("America/New_York")
+  
+  // Location Information  
+  location    String?
+  address     String?
+  room        String?
+  isVirtual   Boolean     @default(false)
+  virtualLink String?
+  
+  // Participants
+  participantsList String?  // JSON array of participant info
+  
+  // Results/Outcome
+  outcome     String?
+  result      EventResult?
+  followUpRequired Boolean @default(false)
+  followUpNotes   String?
+  
+  // Relations
+  caseId      String?
+  case        Case?    @relation(fields: [caseId], references: [id])
+  personId    String?
+  person      Person?  @relation(fields: [personId], references: [id])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents   Document[]
+  
+  @@map("case_events")
+}
+
+// Enhanced Document Management
+model Document {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  fileName        String
+  originalName    String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  checksum        String        // For integrity verification
+  
+  // Categorization
+  category        DocumentCategory @default(GENERAL)
+  subCategory     String?
+  tags            String?       // JSON array
+  
+  // Versioning
+  version         String        @default("1.0")
+  parentDocumentId String?
+  parentDocument  Document?     @relation("DocumentVersions", fields: [parentDocumentId], references: [id])
+  childDocuments  Document[]    @relation("DocumentVersions")
+  isCurrentVersion Boolean      @default(true)
+  
+  // Security
+  confidentialityLevel SecurityLevel @default(BASIC)
+  isRedacted      Boolean       @default(false)
+  redactionNotes  String?
+  
+  // Template Information
+  isTemplate      Boolean       @default(false)
+  templateFields  String?       // JSON object of merge fields
+  
+  // Approval Workflow
+  approvalStatus  ApprovalStatus @default(DRAFT)
+  approvedById    String?
+  approvedBy      User?         @relation("ApprovedDocuments", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  
+  // Relations
+  caseId          String?
+  case            Case?         @relation(fields: [caseId], references: [id])
+  eventId         String?
+  event           CaseEvent?    @relation(fields: [eventId], references: [id])
+  createdById     String
+  createdBy       User          @relation("CreatedBy", fields: [createdById], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  reviews         DocumentReview[]
+  eDiscoveryItems EDiscoveryItem[]
 
   @@map("documents")
 }
 
-// Document folders for organization
-model DocumentFolder {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  path        String // Full folder path
+model DocumentReview {
+  id            String        @id @default(cuid())
+  documentId    String
+  document      Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  reviewer      User          @relation(fields: [reviewerId], references: [id])
+  
+  status        ReviewStatus  @default(PENDING)
+  comments      String?
+  changes       String?       // JSON object of suggested changes
+  priority      Priority      @default(MEDIUM)
+  
+  requestedAt   DateTime      @default(now())
+  completedAt   DateTime?
+  dueDate       DateTime?
 
-  // Hierarchy
-  parentId String?
-  parent   DocumentFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
-  children DocumentFolder[] @relation("FolderHierarchy")
-
-  // Case association
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  // Contents
-  documents Document[]
-
-  // Permissions
-  isRestricted Boolean  @default(false)
-  allowedRoles String[] // Roles that can access this folder
-
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("document_folders")
+  @@map("document_reviews")
 }
 
-// Cross-case document linking
-model CaseDocument {
-  id         String   @id @default(cuid())
-  caseId     String
-  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  // Relationship context
-  role       String // How this document relates to this case
-  isEvidence Boolean @default(false)
-  isPrimary  Boolean @default(false)
-
-  addedById String
-  addedBy   User   @relation(fields: [addedById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([caseId, documentId])
-  @@map("case_documents")
-}
-
-// Document to document linking
-model DocumentLink {
-  id       String   @id @default(cuid())
-  sourceId String
-  source   Document @relation("SourceDocument", fields: [sourceId], references: [id], onDelete: Cascade)
-  linkedId String
-  linked   Document @relation("LinkedDocument", fields: [linkedId], references: [id], onDelete: Cascade)
-
-  relationship String // Type of relationship (amendment, exhibit, reference, etc.)
-  description  String?
-
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([sourceId, linkedId])
-  @@map("document_links")
-}
-
-// Chain of custody tracking
-model CustodyLog {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  action      CustodyAction
-  description String        @db.Text
-
-  // Who performed the action
-  performedById String
-  performedBy   User   @relation(fields: [performedById], references: [id])
-
-  // When and where
-  timestamp DateTime @default(now())
-  location  String?
-  ipAddress String?
-
-  // Additional context
-  metadata Json? // Additional action-specific data
-
-  @@map("custody_logs")
-}
-
-// Document templates for form generation
-model DocumentTemplate {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  category    String // Type of template (contract, pleading, motion, etc.)
-
-  // Template content
-  content String @db.Text // Template content with placeholders
-  fields  Json // Field definitions for form generation
-
-  // File information
-  fileName String? // Original template file
-  filePath String?
-
-  // Permissions
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  isPublic     Boolean     @default(false)
-
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  // Usage tracking
-  useCount Int       @default(0)
-  lastUsed DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("document_templates")
-}
-
-model CaseNote {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  noteType  NoteType @default(GENERAL)
-  isPrivate Boolean  @default(false)
-
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("case_notes")
-}
-
-// Enhanced Task Management System
+// Task Management
 model Task {
-  id          String       @id @default(cuid())
-  title       String
-  description String?      @db.Text
-  status      TaskStatus   @default(PENDING)
-  priority    TaskPriority @default(MEDIUM)
-
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  status          TaskStatus  @default(NOT_STARTED)
+  priority        Priority    @default(MEDIUM)
+  type            TaskType    @default(GENERAL)
+  
+  // Time tracking
+  estimatedHours  Float?
+  actualHours     Float?
+  startDate       DateTime?
+  dueDate         DateTime?
+  completedAt     DateTime?
+  
   // Assignment
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedTask", fields: [assignedToId], references: [id])
-  createdById  String
-  createdBy    User    @relation("CreatedTask", fields: [createdById], references: [id])
-
-  // Context - can be related to case or legal request
-  caseId    String?
-  case      Case?         @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  requestId String?
-  request   LegalRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  // Template association
-  templateId String?
-  template   TaskTemplate? @relation(fields: [templateId], references: [id])
-
-  // Scheduling and time tracking
-  dueDate        DateTime?
-  startDate      DateTime?
-  completedDate  DateTime?
-  estimatedHours Decimal?  @db.Decimal(6, 2)
-  actualHours    Decimal?  @db.Decimal(6, 2)
-
-  // Progress tracking
-  progressPercent Int @default(0) // 0-100
-
-  // Dependencies
-  dependsOn    TaskDependency[] @relation("DependentTask")
-  dependencies TaskDependency[] @relation("PrerequisiteTask")
-
-  // Subtasks
-  parentTaskId String?
-  parentTask   Task?   @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
-  subtasks     Task[]  @relation("TaskHierarchy")
-
-  // Recurring tasks
-  isRecurring    Boolean @default(false)
-  recurrenceRule String? // RRULE format
-  parentSeriesId String? // Links recurring task instances
-
-  // Tags and categorization
-  tags     String[]
-  category String?
-
-  // Reminders and notifications
-  reminders Reminder[]
-
-  // Calendar integration
-  calendarEvents CalendarEvent[]
-
-  // Comments and attachments
-  comments    TaskComment[]
-  attachments TaskAttachment[]
-
-  // Metadata
-  metadata Json? // Custom fields
-
+  assignedToId    String?
+  assignedTo      User?       @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdById     String
+  createdBy       User        @relation(fields: [createdById], references: [id])
+  
+  // Relations
+  caseId          String?
+  case            Case?       @relation(fields: [caseId], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
 
   @@map("tasks")
 }
 
-// Task Templates for common workflows
-model TaskTemplate {
-  id          String  @id @default(cuid())
-  name        String
-  description String? @db.Text
-  category    String // e.g., "Litigation", "Contract Review", "Discovery"
-
-  // Template structure
-  tasks TaskTemplateItem[]
-
-  // Default values
-  defaultPriority       TaskPriority @default(MEDIUM)
-  defaultEstimatedHours Decimal?     @db.Decimal(6, 2)
-
-  // Permissions
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  isPublic     Boolean     @default(false)
-
-  // Usage tracking
-  useCount Int       @default(0)
-  lastUsed DateTime?
-
-  // Creator
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  // Generated tasks
-  generatedTasks Task[]
-
+// FOIL Request Management  
+model FoilRequest {
+  id              String        @id @default(cuid())
+  requestNumber   String        @unique
+  subject         String
+  description     String
+  
+  // Requester Information
+  requesterName   String
+  requesterEmail  String
+  requesterPhone  String?
+  requesterAddress String?
+  requesterType   RequesterType @default(INDIVIDUAL)
+  
+  // Processing Information
+  status          FoilStatus    @default(RECEIVED)
+  dateReceived    DateTime      @default(now())
+  dateDue         DateTime      // 5 business days by law
+  dateResponded   DateTime?
+  responseMethod  String?
+  
+  // Legal Information
+  exemptionsClaimed String?     // JSON array of exemptions
+  feesRequired    Boolean       @default(false)
+  feeAmount       Float?
+  feesPaid        Boolean       @default(false)
+  
+  // Processing Notes
+  processingNotes String?
+  denialReason    String?
+  
+  // Relations
+  caseId          String?
+  case            Case?         @relation(fields: [caseId], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("task_templates")
+  @@map("foil_requests")
 }
 
-// Template items define the structure of tasks to be created
-model TaskTemplateItem {
-  id         String       @id @default(cuid())
-  templateId String
-  template   TaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-
-  // Task definition
-  title       String
-  description String?      @db.Text
-  priority    TaskPriority @default(MEDIUM)
-
-  // Scheduling
-  daysFromStart    Int? // How many days after case/request start
-  daysFromPrevious Int? // How many days after previous task
-  estimatedHours   Decimal? @db.Decimal(6, 2)
-
-  // Dependencies within template
-  dependsOnIndex Int[] // Array of indexes of tasks this depends on
-
-  // Assignment
-  assignToRole UserRole? // Auto-assign to user with this role
-  assignToSame Boolean   @default(false) // Assign to same person as case/request
-
-  // Order and categorization
-  orderIndex Int // Order in template
-  category   String?
-  tags       String[]
-
-  createdAt DateTime @default(now())
-
-  @@map("task_template_items")
-}
-
-// Task Dependencies
-model TaskDependency {
-  id                 String @id @default(cuid())
-  dependentTaskId    String // Task that depends
-  dependentTask      Task   @relation("DependentTask", fields: [dependentTaskId], references: [id], onDelete: Cascade)
-  prerequisiteTaskId String // Task that must be completed first
-  prerequisiteTask   Task   @relation("PrerequisiteTask", fields: [prerequisiteTaskId], references: [id], onDelete: Cascade)
-
-  // Dependency type
-  dependencyType DependencyType @default(FINISH_TO_START)
-
-  // Optional delay
-  delayDays Int? @default(0)
-
-  createdAt DateTime @default(now())
-
-  @@unique([dependentTaskId, prerequisiteTaskId])
-  @@map("task_dependencies")
-}
-
-// Task Comments for collaboration
-model TaskComment {
-  id     String @id @default(cuid())
-  taskId String
-  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  content String @db.Text
-
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id])
-
-  // Threading
-  parentId String?
-  parent   TaskComment?  @relation("CommentThread", fields: [parentId], references: [id])
-  replies  TaskComment[] @relation("CommentThread")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("task_comments")
-}
-
-// Task Attachments
-model TaskAttachment {
-  id     String @id @default(cuid())
-  taskId String
-  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  name     String
-  fileName String
-  filePath String
-  mimeType String
-  fileSize Int
-
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("task_attachments")
-}
-
-// Legacy case events - keeping for backward compatibility
-model CaseEvent {
-  id          String    @id @default(cuid())
-  title       String
-  description String?   @db.Text
-  eventType   EventType
-
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  // Scheduling
-  scheduledAt DateTime
-  endTime     DateTime?
-  location    String?
-
-  // Attendees and reminders
-  attendees    String[] // Array of attendee emails/names
-  reminderSet  Boolean   @default(false)
-  reminderTime DateTime?
-
-  isAllDay Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("case_events")
-}
-
-// Comprehensive Calendar System
-model CalendarEvent {
-  id          String  @id @default(cuid())
-  title       String
-  description String? @db.Text
-  location    String?
-
-  // Event categorization
-  eventType CalendarEventType @default(MEETING)
-  category  String? // Custom category
-  color     String? // Color code for calendar display
-
-  // Timing
-  startDate DateTime
-  endDate   DateTime?
-  isAllDay  Boolean   @default(false)
-  timezone  String    @default("America/New_York")
-
-  // Recurrence
-  isRecurring    Boolean   @default(false)
-  recurrenceRule String? // RRULE format (RFC 5545)
-  parentSeriesId String? // Links recurring event instances
-  originalDate   DateTime? // For recurring event exceptions
-
-  // Context - can be related to case, request, or task
-  caseId    String?
-  case      Case?         @relation(fields: [caseId], references: [id])
-  requestId String?
-  request   LegalRequest? @relation(fields: [requestId], references: [id])
-  taskId    String?
-  task      Task?         @relation(fields: [taskId], references: [id])
-
-  // Court and legal specifics
-  courtName     String?
-  judgeAssigned String?
-  caseNumber    String? // Court case number (different from internal case ID)
-  docketNumber  String?
-
-  // Discovery schedule specifics
-  discoveryType     DiscoveryType?
-  discoveryDeadline DateTime?
-  opposingParty     String?
-
-  // Status and workflow
-  status             EventStatus @default(SCHEDULED)
-  isConfirmed        Boolean     @default(false)
-  isCancelled        Boolean     @default(false)
-  cancellationReason String?
-
-  // Meeting details
-  meetingType  MeetingType?
-  meetingUrl   String? // Video conference URL
-  meetingId    String? // Meeting ID for external systems
-  dialInNumber String?
-
-  // Document attachments
-  attachments EventAttachment[]
-
-  // Attendees
-  attendees EventAttendee[]
-  organizer EventAttendee?  @relation("EventOrganizer", fields: [eventAttendeeId], references: [id])
-
-  // Reminders and notifications
-  reminders Reminder[]
-
-  // External calendar integration
-  externalEventId String? // ID in external calendar system (Outlook, Google)
-  calendarSystem  String? // "outlook", "google", etc.
-  lastSyncAt      DateTime?
-
-  // Conflict detection
-  conflictsWith CalendarConflict[] @relation("ConflictingEvent")
-  conflicts     CalendarConflict[] @relation("ConflictedEvent")
-
-  // Creator and permissions
-  createdById     String
-  createdBy       User            @relation("EventCreatedBy", fields: [createdById], references: [id])
-  isPrivate       Boolean         @default(false)
-  visibilityLevel VisibilityLevel @default(NORMAL)
-
-  // Metadata
-  tags     String[]
-  metadata Json? // Custom fields
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  User            User?    @relation(fields: [userId], references: [id])
-  userId          String?
-  eventAttendeeId String?
-
-  @@map("calendar_events")
-}
-
-// Event attendees with response tracking
-model EventAttendee {
-  id      String        @id @default(cuid())
-  eventId String
-  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  // Attendee can be a system user or external
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id])
-
-  // External attendee info
-  name  String?
-  email String?
-
-  // Response tracking
-  responseStatus ResponseStatus @default(PENDING)
-  responseDate   DateTime?
-  responseNote   String?
-
-  // Role in event
-  attendeeType AttendeeType @default(REQUIRED_ATTENDEE)
-  isRequired   Boolean      @default(true)
-  isOrganizer  Boolean      @default(false)
-
-  // Notifications
-  reminderSent     Boolean   @default(false)
-  lastReminderSent DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Define the reverse relation for organizer
-  organizerEvents CalendarEvent[] @relation("EventOrganizer")
-
-  @@unique([eventId, userId])
-  @@unique([eventId, email])
-  @@map("event_attendees")
-}
-
-// Event attachments
-model EventAttachment {
-  id      String        @id @default(cuid())
-  eventId String
-  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  name     String
-  fileName String
-  filePath String
-  mimeType String
-  fileSize Int
-
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("event_attachments")
-}
-
-// Universal reminder system for tasks, events, and deadlines
-model Reminder {
-  id          String  @id @default(cuid())
-  title       String
-  description String?
-
-  // What this reminder is for
-  entityType String // "task", "event", "deadline", "case"
-  entityId   String
-
-  // Optional specific associations
-  userId  String?
-  user    User?          @relation(fields: [userId], references: [id])
-  taskId  String?
-  task    Task?          @relation(fields: [taskId], references: [id])
-  eventId String?
-  event   CalendarEvent? @relation(fields: [eventId], references: [id])
-
-  // Reminder timing
-  reminderDate DateTime
-  leadTime     Int // Minutes before the actual date
-  reminderType ReminderType @default(IN_APP)
-
+// Physical File Tracking
+model PhysicalFile {
+  id              String            @id @default(cuid())
+  fileNumber      String            @unique
+  title           String
+  description     String?
+  
+  // Location Tracking
+  currentLocation String
+  building        String?
+  room            String?
+  shelf           String?
+  box             String?
+  
   // Status
-  isSent      Boolean   @default(false)
-  sentAt      DateTime?
-  isRead      Boolean   @default(false)
-  readAt      DateTime?
-  isDismissed Boolean   @default(false)
-  dismissedAt DateTime?
+  status          PhysicalFileStatus @default(ACTIVE)
+  isArchived      Boolean           @default(false)
+  archiveDate     DateTime?
+  archiveLocation String?
+  
+  // Tracking
+  lastCheckout    DateTime?
+  checkedOutBy    String?
+  returnDueDate   DateTime?
+  
+  // Relations
+  caseId          String?
+  case            Case?             @relation(fields: [caseId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Recurrence for recurring reminders
-  isRecurring    Boolean @default(false)
-  recurrenceRule String?
+  @@map("physical_files")
+}
 
-  // Delivery channels
-  sendEmail   Boolean   @default(false)
-  emailSent   Boolean   @default(false)
-  emailSentAt DateTime?
+// E-Discovery Management
+model EDiscoveryItem {
+  id              String              @id @default(cuid())
+  title           String
+  description     String?
+  
+  // Processing Information
+  status          EDiscoveryStatus    @default(COLLECTED)
+  custodian       String?
+  sourceLocation  String?
+  collectionDate  DateTime            @default(now())
+  
+  // File Information
+  originalPath    String?
+  preservedPath   String
+  fileHash        String
+  fileSize        Int
+  mimeType        String
+  
+  // Legal Hold
+  legalHoldId     String?
+  isPrivileged    Boolean             @default(false)
+  privilegeNotes  String?
+  isRedacted      Boolean             @default(false)
+  redactionLevel  String?
+  
+  // Relations
+  caseId          String
+  case            Case                @relation(fields: [caseId], references: [id])
+  documentId      String?
+  document        Document?           @relation(fields: [documentId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  sendSms   Boolean   @default(false)
-  smsSent   Boolean   @default(false)
-  smsSentAt DateTime?
+  @@map("e_discovery_items")
+}
 
+// Inter-Agency Communication
+model InterAgencyRequest {
+  id                String                    @id @default(cuid())
+  requestNumber     String                    @unique
+  subject           String
+  description       String
+  urgency           Priority                  @default(MEDIUM)
+  
+  // Requesting Department
+  requestingDeptId  String
+  requestingDept    Department                @relation(fields: [requestingDeptId], references: [id])
+  requestorName     String
+  requestorEmail    String
+  requestorPhone    String?
+  
+  // Request Details
+  requestType       InterAgencyRequestType    @default(LEGAL_ASSISTANCE)
+  serviceRequested  String
+  expectedOutcome   String?
+  deadline          DateTime?
+  
+  // Status
+  status            RequestStatus             @default(RECEIVED)
+  assignedAttorneyId String?
+  assignedAttorney  User?                     @relation("InterAgencyRequests", fields: [assignedAttorneyId], references: [id])
+  
+  // Response
+  responseProvided  String?
+  responseDate      DateTime?
+  outcomeAchieved   String?
+  
+  // Relations
+  caseId            String?
+  case              Case?                     @relation(fields: [caseId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inter_agency_requests")
+}
+
+// Motion and Brief Bank
+model MotionBrief {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  category        String        // e.g., "Motion to Dismiss", "Summary Judgment"
+  subCategory     String?
+  
+  // Content
+  content         String        // Full text content for searching
+  filePath        String?       // Path to actual document file
+  
   // Metadata
-  metadata Json?
-
+  caseNumber      String?
+  courtName       String?
+  jurisdiction    String?
+  dateCreated     DateTime      @default(now())
+  authorName      String
+  opponentType    String?       // Type of opponent/opposing party
+  
+  // Indexing
+  keywords        String?       // Searchable keywords
+  tags            String?       // JSON array of tags
+  practiceArea    String?
+  
+  // Usage Tracking
+  timesUsed       Int           @default(0)
+  lastUsed        DateTime?
+  
+  // Approval
+  isApproved      Boolean       @default(false)
+  approvedById    String?
+  approvedBy      User?         @relation("ApprovedMotionBriefs", fields: [approvedById], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("reminders")
+  @@map("motion_briefs")
 }
 
-// Conflict detection between calendar events
-model CalendarConflict {
-  id String @id @default(cuid())
-
-  // The two conflicting events
-  eventId            String
-  event              CalendarEvent @relation("ConflictingEvent", fields: [eventId], references: [id], onDelete: Cascade)
-  conflictingEventId String
-  conflictingEvent   CalendarEvent @relation("ConflictedEvent", fields: [conflictingEventId], references: [id], onDelete: Cascade)
-
-  // Conflict details
-  conflictType ConflictType     @default(TIME_OVERLAP)
-  severity     ConflictSeverity @default(MEDIUM)
-  description  String?
-
-  // Resolution
-  isResolved Boolean   @default(false)
-  resolvedAt DateTime?
-  resolvedBy String? // User ID who resolved
-  resolution String? // How it was resolved
-
-  // Auto-detected or manual
-  isAutoDetected Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([eventId, conflictingEventId])
-  @@map("calendar_conflicts")
-}
-
-model Activity {
-  id          String @id @default(cuid())
-  action      String // e.g., "created", "updated", "assigned"
-  entityType  String // e.g., "Case", "Document", "Task"
-  entityId    String
-  description String @db.Text
-  metadata    Json? // Additional context
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  caseId String?
-  case   Case?   @relation(fields: [caseId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("activities")
-}
-
+// Notifications and Alerts
 model Notification {
-  id      String           @id @default(cuid())
-  title   String
-  message String           @db.Text
-  type    NotificationType
-  isRead  Boolean          @default(false)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Link to related entities
-  entityType String?
-  entityId   String?
-
+  id              String             @id @default(cuid())
+  title           String
+  message         String
+  type            NotificationType   @default(INFO)
+  priority        Priority           @default(MEDIUM)
+  
+  // Targeting
+  userId          String?
+  user            User?              @relation(fields: [userId], references: [id])
+  roleTargeted    UserRole?
+  deptTargeted    String?
+  
+  // Status
+  isRead          Boolean            @default(false)
+  readAt          DateTime?
+  
+  // Scheduling
+  scheduledFor    DateTime?
+  expiresAt       DateTime?
+  
+  // Actions
+  actionUrl       String?
+  actionText      String?
+  
   createdAt DateTime @default(now())
-  Case      Case?    @relation(fields: [caseId], references: [id])
-  caseId    String?
+  updatedAt DateTime @updatedAt
 
   @@map("notifications")
+}
+
+// Audit Logging
+model AuditLog {
+  id              String      @id @default(cuid())
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  
+  // Action Details
+  action          String      // CREATE, UPDATE, DELETE, VIEW, etc.
+  resource        String      // Table/resource affected
+  resourceId      String?     // ID of affected record
+  
+  // Change Details  
+  oldValues       String?     // JSON of previous values
+  newValues       String?     // JSON of new values
+  fieldChanged    String?     // Specific field that changed
+  
+  // Context
+  ipAddress       String?
+  userAgent       String?
+  sessionId       String?
+  
+  // Results
+  success         Boolean     @default(true)
+  errorMessage    String?
+  
+  timestamp DateTime @default(now())
+
+  @@map("audit_logs")
 }
 
 // Enums
@@ -1094,996 +701,235 @@ enum UserRole {
   USER
 }
 
+enum SecurityLevel {
+  BASIC
+  CONFIDENTIAL
+  SECRET
+  TOP_SECRET
+}
+
+enum PersonType {
+  INDIVIDUAL
+  CORPORATION
+  LLC
+  PARTNERSHIP
+  GOVERNMENT_ENTITY
+  NON_PROFIT
+  OTHER
+}
+
+enum AddressType {
+  PRIMARY
+  SECONDARY
+  BUSINESS
+  MAILING
+  BILLING
+}
+
 enum CaseStatus {
   OPEN
   IN_PROGRESS
   ON_HOLD
   CLOSED
+  APPEALED
+  SETTLED
   DISMISSED
-}
-
-enum CasePriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
 }
 
 enum CaseType {
   LITIGATION
   TRANSACTIONAL
-  CONTRACT_REVIEW
-  EMPLOYMENT
-  REAL_ESTATE
-  MUNICIPAL
-  COMPLIANCE
-  ADVISORY
   REGULATORY
-  INTELLECTUAL_PROPERTY
-  OTHER
-}
-
-enum DocumentType {
-  COMPLAINT
-  MOTION
-  BRIEF
+  ADVISORY
+  COMPLIANCE
   CONTRACT
-  CORRESPONDENCE
-  EVIDENCE
-  PLEADING
-  ORDER
-  SETTLEMENT
-  OTHER
-}
-
-enum NoteType {
+  EMPLOYMENT
+  ENVIRONMENTAL
+  REAL_ESTATE
   GENERAL
-  CLIENT_COMMUNICATION
-  COURT_UPDATE
-  INTERNAL
-  RESEARCH
-  STRATEGY
 }
 
-enum TaskStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  ON_HOLD
-}
-
-enum TaskPriority {
+enum Priority {
   LOW
   MEDIUM
   HIGH
-  URGENT
+  CRITICAL
 }
 
-enum EventType {
-  COURT_HEARING
-  DEPOSITION
-  MEETING
-  DEADLINE
-  FILING
-  CONFERENCE
-  OTHER
-}
-
-enum NotificationType {
-  TASK_ASSIGNED
-  TASK_DUE
-  CASE_UPDATED
-  DOCUMENT_UPLOADED
-  EVENT_REMINDER
-  MESSAGE_RECEIVED
-  REQUEST_ASSIGNED
-  REQUEST_STATUS_CHANGE
-  DEADLINE_APPROACHING
-  CALENDAR_CONFLICT
-  REMINDER_DUE
-  SYSTEM
-}
-
-// New enums for Person/Entity management and enhanced case tracking
-enum PersonType {
-  INDIVIDUAL
-  ORGANIZATION
-  GOVERNMENT_AGENCY
-  LAW_FIRM
-  CORPORATION
-  PARTNERSHIP
-  LLC
-  NON_PROFIT
-  OTHER
-}
-
-enum CasePersonRole {
-  CLIENT
+enum InvolvementRole {
   PLAINTIFF
   DEFENDANT
-  PETITIONER
-  RESPONDENT
-  THIRD_PARTY
   WITNESS
   EXPERT_WITNESS
   ATTORNEY
   OPPOSING_COUNSEL
   JUDGE
   MEDIATOR
-  ARBITRATOR
-  GUARDIAN
-  TRUSTEE
+  CLIENT
+  CONTACT
   OTHER
 }
 
-enum CaseOutcome {
-  WON
-  LOST
-  SETTLED
-  DISMISSED
-  WITHDRAWN
-  ONGOING
-  OTHER
-}
-
-// Document Management Enums
-enum SecurityLevel {
-  PUBLIC
-  INTERNAL
-  CONFIDENTIAL
-  RESTRICTED
-  TOP_SECRET
-}
-
-enum DocumentStatus {
-  ACTIVE
-  ARCHIVED
-  DELETED
-  DRAFT
-  UNDER_REVIEW
-  PUBLISHED
-}
-
-enum ReviewStatus {
-  PENDING
-  IN_REVIEW
-  APPROVED
-  REJECTED
-  NEEDS_REVISION
-}
-
-enum CustodyAction {
-  CREATED
-  ACCESSED
-  MODIFIED
-  COPIED
-  MOVED
-  SHARED
-  DOWNLOADED
-  PRINTED
-  DELETED
-  RESTORED
-  EXPORTED
-  REDACTED
-  OCR_PROCESSED
-}
-
-// Client Department Portal Enums
-enum RequestUrgency {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-  CRITICAL
-}
-
-enum RequestCategory {
-  CONTRACT_REVIEW
-  LITIGATION_SUPPORT
-  EMPLOYMENT_MATTER
-  REGULATORY_COMPLIANCE
-  REAL_ESTATE
-  MUNICIPAL_LAW
-  PROCUREMENT
-  PUBLIC_RECORDS
-  RISK_MANAGEMENT
-  POLICY_REVIEW
-  GENERAL_COUNSEL
-  OTHER
-}
-
-enum RequestStatus {
-  SUBMITTED
-  UNDER_REVIEW
-  ASSIGNED
-  IN_PROGRESS
-  PENDING_INFO
-  ON_HOLD
-  COMPLETED
-  CLOSED
-  CANCELLED
-}
-
-enum MessageType {
+enum NoteType {
   GENERAL
-  QUESTION
-  UPDATE
-  URGENT
-  DOCUMENT_REQUEST
-  MEETING_REQUEST
-  CASE_UPDATE
+  MEETING
+  PHONE_CALL
+  RESEARCH
+  STRATEGY
+  DISCOVERY
+  COURT_FILING
+  CLIENT_COMMUNICATION
+  INTERNAL
 }
 
-enum UpdateType {
-  STATUS_CHANGE
-  ASSIGNMENT
-  DOCUMENT_ADDED
-  DEADLINE_CHANGE
-  MEETING_SCHEDULED
-  GENERAL_UPDATE
-  CASE_CREATED
-}
-
-// Legal Request System for Client Departments
-model LegalRequest {
-  id           String          @id @default(cuid())
-  matterNumber String          @unique
-  title        String
-  description  String          @db.Text
-  urgency      RequestUrgency  @default(MEDIUM)
-  category     RequestCategory
-
-  // Requesting department info
-  departmentId   String
-  department     Department @relation(fields: [departmentId], references: [id])
-  requestorName  String
-  requestorEmail String
-  requestorPhone String?
-
-  // Request details
-  deadline    DateTime?
-  budgetLimit Decimal?  @db.Decimal(10, 2)
-
-  // Status tracking
-  status   RequestStatus @default(SUBMITTED)
-  priority CasePriority  @default(MEDIUM)
-
-  // Assignment
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedLegalRequests", fields: [assignedToId], references: [id])
-  reviewerId   String?
-  reviewer     User?   @relation("ReviewedLegalRequests", fields: [reviewerId], references: [id])
-
-  // Conversion to case
-  caseId String? @unique
-  case   Case?   @relation(fields: [caseId], references: [id])
-
-  // Related data
-  documents      RequestDocument[]
-  messages       DepartmentMessage[]
-  updates        RequestUpdate[]
-  tasks          Task[]
-  calendarEvents CalendarEvent[]
-
-  // Metadata
-  submittedAt DateTime  @default(now())
-  reviewedAt  DateTime?
-  assignedAt  DateTime?
-  completedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("legal_requests")
-}
-
-// Documents attached to legal requests
-model RequestDocument {
-  id          String  @id @default(cuid())
-  name        String
-  fileName    String
-  filePath    String
-  mimeType    String
-  fileSize    Int
-  description String?
-
-  // Request association
-  requestId String
-  request   LegalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  // Upload info
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("request_documents")
-}
-
-// Secure messaging between departments and law office
-model DepartmentMessage {
-  id          String      @id @default(cuid())
-  subject     String?
-  content     String      @db.Text
-  messageType MessageType @default(GENERAL)
-
-  // Participants
-  fromUserId String
-  fromUser   User   @relation("SentMessages", fields: [fromUserId], references: [id])
-
-  // Department context
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
-
-  // Optional case/request context
-  caseId    String?
-  case      Case?         @relation(fields: [caseId], references: [id])
-  requestId String?
-  request   LegalRequest? @relation(fields: [requestId], references: [id])
-
-  // Thread management
-  parentId String?
-  parent   DepartmentMessage?  @relation("MessageThread", fields: [parentId], references: [id])
-  replies  DepartmentMessage[] @relation("MessageThread")
-
-  // Status
-  isRead     Boolean @default(false)
-  isArchived Boolean @default(false)
-  isInternal Boolean @default(false) // Only visible to law department
-
-  // Attachments
-  attachments MessageAttachment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("department_messages")
-}
-
-// Message attachments
-model MessageAttachment {
-  id       String @id @default(cuid())
-  name     String
-  fileName String
-  filePath String
-  mimeType String
-  fileSize Int
-
-  messageId String
-  message   DepartmentMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("message_attachments")
-}
-
-// Request status updates and timeline
-model RequestUpdate {
-  id        String       @id @default(cuid())
-  requestId String
-  request   LegalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  updateType  UpdateType @default(STATUS_CHANGE)
-  title       String
-  description String     @db.Text
-
-  // Status info
-  oldStatus RequestStatus?
-  newStatus RequestStatus?
-
-  // User who made the update
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  // Visibility
-  visibleToClient Boolean @default(true)
-
-  createdAt DateTime @default(now())
-
-  @@map("request_updates")
-}
-
-// Enhanced Notification system (removed duplicate - using the one at line 1062)
-
-// Calendar and Task Management Enums
-enum DependencyType {
-  FINISH_TO_START
-  START_TO_START
-  FINISH_TO_FINISH
-  START_TO_FINISH
-}
-
-enum CalendarEventType {
-  COURT_HEARING
+enum EventType {
+  HEARING
   DEPOSITION
   MEETING
   DEADLINE
-  FILING_DEADLINE
-  DISCOVERY_DEADLINE
-  CONFERENCE
-  CONSULTATION
-  TRIAL
+  COURT_DATE
   MEDIATION
   ARBITRATION
-  CASE_REVIEW
-  CLIENT_MEETING
-  TEAM_MEETING
-  TRAINING
-  BREAK
-  OTHER
-}
-
-enum DiscoveryType {
-  DOCUMENT_PRODUCTION
-  INTERROGATORIES
-  DEPOSITIONS
-  REQUESTS_FOR_ADMISSION
-  EXPERT_WITNESS_DISCLOSURE
-  FACT_WITNESS_DISCLOSURE
-  CASE_MANAGEMENT_CONFERENCE
-  MOTION_DEADLINE
-  TRIAL_BRIEF_DEADLINE
-  OTHER
+  TRIAL
+  CONFERENCE
+  FILING_DEADLINE
+  GENERAL
 }
 
 enum EventStatus {
   SCHEDULED
-  CONFIRMED
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  POSTPONED
   RESCHEDULED
-  NO_SHOW
 }
 
-enum MeetingType {
-  IN_PERSON
-  VIDEO_CONFERENCE
-  PHONE_CONFERENCE
-  HYBRID
-  WEBINAR
-  COURT_APPEARANCE
-  DEPOSITION_REMOTE
-  DEPOSITION_IN_PERSON
-}
-
-enum ResponseStatus {
+enum EventResult {
+  SUCCESSFUL
+  UNSUCCESSFUL
+  CONTINUED
+  SETTLED
+  DISMISSED
   PENDING
-  ACCEPTED
-  DECLINED
-  TENTATIVE
-  NO_RESPONSE
 }
 
-enum AttendeeType {
-  ORGANIZER
-  REQUIRED_ATTENDEE
-  OPTIONAL_ATTENDEE
-  RESOURCE
-  OBSERVER
-}
-
-enum VisibilityLevel {
-  PUBLIC
-  NORMAL
-  PRIVATE
-  CONFIDENTIAL
-}
-
-enum ReminderType {
-  IN_APP
-  EMAIL
-  SMS
-  PUSH_NOTIFICATION
-  POPUP
-  DESKTOP_NOTIFICATION
-}
-
-enum ConflictType {
-  TIME_OVERLAP
-  DOUBLE_BOOKING
-  RESOURCE_CONFLICT
-  LOCATION_CONFLICT
-  TRAVEL_TIME_CONFLICT
-  PREPARATION_TIME_CONFLICT
-  COURT_SCHEDULE_CONFLICT
-}
-
-enum ConflictSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-// Security and Compliance Models
-
-// Comprehensive Audit Log System
-model AuditLog {
-  id String @id @default(cuid())
-
-  // What action was performed
-  action     String // e.g., "CREATE", "READ", "UPDATE", "DELETE", "LOGIN", "LOGOUT"
-  entityType String // e.g., "Case", "Document", "User", "System"
-  entityId   String? // ID of the affected entity
-  tableName  String? // Database table name
-
-  // Who performed the action
-  userId        String?
-  user          User?   @relation("AuditUser", fields: [userId], references: [id])
-  performedById String? // If action was performed by admin on behalf of user
-  performedBy   User?   @relation("AuditPerformer", fields: [performedById], references: [id])
-
-  // When and where
-  timestamp DateTime @default(now())
-  ipAddress String?
-  userAgent String?
-  sessionId String?
-
-  // What changed
-  oldValues Json? // Previous values (for updates)
-  newValues Json? // New values (for creates/updates)
-  fieldName String? // Specific field that changed
-
-  // Context
-  description String? // Human-readable description
-  severity    AuditSeverity @default(INFO)
-  category    AuditCategory @default(DATA_ACCESS)
-
-  // Compliance flags
-  isPII          Boolean @default(false) // Contains personally identifiable information
-  isConfidential Boolean @default(false) // Contains confidential data
-  isLegalHold    Boolean @default(false) // Subject to legal hold
-
-  // Result
-  success      Boolean @default(true)
-  errorMessage String?
-
-  // Retention
-  retentionPeriod Int? // Days to retain this log
-
-  @@index([userId, timestamp])
-  @@index([entityType, entityId])
-  @@index([action, timestamp])
-  @@index([timestamp])
-  @@map("audit_logs")
-}
-
-// Login History and Session Tracking
-model LoginHistory {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Login details
-  loginAt   DateTime  @default(now())
-  logoutAt  DateTime?
-  ipAddress String
-  userAgent String
-  location  String? // Geolocation if available
-
-  // Login method
-  method    LoginMethod @default(PASSWORD)
-  mfaUsed   Boolean     @default(false)
-  mfaMethod String? // "TOTP", "SMS", "EMAIL"
-
-  // Session info
-  sessionId       String?
-  sessionDuration Int? // Minutes
-
-  // Security flags
-  isSuccessful  Boolean @default(true)
-  failureReason String?
-  isSuspicious  Boolean @default(false)
-  isBlocked     Boolean @default(false)
-
-  // Device fingerprinting
-  deviceId String?
-  platform String?
-  browser  String?
-
-  @@index([userId, loginAt])
-  @@index([ipAddress])
-  @@index([loginAt])
-  @@map("login_history")
-}
-
-// Active User Sessions
-model UserSession {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Session details
-  sessionToken   String   @unique
-  startedAt      DateTime @default(now())
-  lastActivityAt DateTime @default(now())
-  expiresAt      DateTime
-
-  // Connection info
-  ipAddress String
-  userAgent String
-  deviceId  String?
-
-  // Session state
-  isActive          Boolean   @default(true)
-  terminatedAt      DateTime?
-  terminatedBy      String? // "USER", "ADMIN", "SYSTEM", "TIMEOUT"
-  terminationReason String?
-
-  @@index([userId, isActive])
-  @@index([sessionToken])
-  @@index([expiresAt])
-  @@map("user_sessions")
-}
-
-// Role-Based Permissions System
-model Permission {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  description String?
-  category    String // e.g., "CASE_MANAGEMENT", "DOCUMENT_ACCESS", "ADMIN"
-
-  // Permission scope
-  resource   String // e.g., "cases", "documents", "users"
-  action     String // e.g., "create", "read", "update", "delete"
-  conditions Json? // Additional conditions (department, case type, etc.)
-
-  // Metadata
-  isSystemLevel Boolean @default(false)
-  isActive      Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  rolePermissions  RolePermission[]
-  permissionGrants PermissionGrant[]
-
-  @@map("permissions")
-}
-
-// Role Definitions
-model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  description String?
-  level       Int     @default(0) // Hierarchy level (higher = more permissions)
-
-  // Role properties
-  isSystem Boolean @default(false)
-  isActive Boolean @default(true)
-  maxUsers Int? // Maximum users that can have this role
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  permissions RolePermission[]
-
-  @@map("roles")
-}
-
-// Role-Permission Junction
-model RolePermission {
-  id           String     @id @default(cuid())
-  roleId       String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permissionId String
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  // Grant conditions
-  conditions Json? // Additional conditions for this specific grant
-  grantedAt  DateTime @default(now())
-  grantedBy  String? // User ID who granted this permission
-
-  @@unique([roleId, permissionId])
-  @@map("role_permissions")
-}
-
-// Individual Permission Grants (overrides role permissions)
-model PermissionGrant {
-  id           String     @id @default(cuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissionId String
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  // Grant details
-  isGranted  Boolean @default(true) // true = grant, false = deny
-  conditions Json? // Specific conditions for this grant
-
-  // Temporal scope
-  validFrom  DateTime?
-  validUntil DateTime?
-
-  // Audit trail
-  grantedAt DateTime @default(now())
-  grantedBy String // User ID who granted this permission
-  reason    String?
-
-  @@unique([userId, permissionId])
-  @@map("permission_grants")
-}
-
-// Field-Level Access Control
-model FieldAccessLog {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  // Field access details
-  entityType String // e.g., "Case", "Document"
-  entityId   String
-  fieldName  String // e.g., "confidentialNotes", "socialSecurityNumber"
-
-  // Access details
-  accessType FieldAccessType // READ, WRITE, EXPORT
-  accessedAt DateTime        @default(now())
-  ipAddress  String?
-
-  // Authorization
-  wasAuthorized Boolean @default(true)
-  denialReason  String?
-
-  // Data classification
-  dataClassification SecurityLevel @default(INTERNAL)
-
-  @@index([userId, accessedAt])
-  @@index([entityType, entityId])
-  @@map("field_access_logs")
-}
-
-// Freedom of Information Law (FOIL) Request Management
-model FOILRequest {
-  id            String @id @default(cuid())
-  requestNumber String @unique
-
-  // Requester information
-  requesterName    String
-  requesterEmail   String?
-  requesterPhone   String?
-  requesterAddress String?
-  organization     String?
-
-  // Request details
-  subject     String
-  description String   @db.Text
-  requestType FOILType @default(DOCUMENTS)
-  dateRange   String? // e.g., "January 2023 - December 2023"
-
-  // Processing
-  receivedAt   DateTime   @default(now())
-  assignedToId String?
-  assignedTo   User?      @relation(fields: [assignedToId], references: [id])
-  status       FOILStatus @default(RECEIVED)
-
-  // Response details
-  responseMethod          FOILResponseMethod @default(EMAIL)
-  estimatedCompletionDate DateTime?
-  actualCompletionDate    DateTime?
-
-  // Fees
-  estimatedFee    Decimal? @db.Decimal(8, 2)
-  actualFee       Decimal? @db.Decimal(8, 2)
-  feeWaived       Boolean  @default(false)
-  feeWaiverReason String?
-
-  // Legal considerations
-  exemptionsApplied  String[] // Legal exemptions applied
-  redactionsRequired Boolean  @default(false)
-  legalReview        Boolean  @default(false)
-  legalReviewNotes   String?
-
-  // Related entities
-  relatedCases     String[] // Case IDs that might contain responsive documents
-  relatedDocuments String[] // Document IDs being released
-
-  // Response
-  responseNotes String? @db.Text
-  denialReason  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("foil_requests")
-}
-
-// Data Export Tracking (for compliance)
-model DataExport {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  // Export details
-  exportType DataExportType
-  entityType String // "User", "Case", "Document", etc.
-  entityIds  String[] // IDs of exported entities
-  format     String // "PDF", "CSV", "JSON", etc.
-
-  // Authorization
-  purpose      String // Reason for export
-  authorizedBy String? // User ID who authorized (if required)
-
-  // Data scope
-  includesPII          Boolean       @default(false)
-  includesConfidential Boolean       @default(false)
-  dataClassification   SecurityLevel @default(INTERNAL)
-
-  // Processing
-  requestedAt  DateTime  @default(now())
-  startedAt    DateTime?
-  completedAt  DateTime?
-  downloadedAt DateTime?
-
-  // Status
-  status       ExportStatus @default(PENDING)
-  errorMessage String?
-
-  // File details
-  filename    String?
-  fileSize    Int? // Bytes
-  checksumMD5 String? // File integrity check
-
-  // Retention
-  expiresAt DateTime? // When the export file expires
-  isDeleted Boolean   @default(false)
-  deletedAt DateTime?
-
-  @@index([userId, requestedAt])
-  @@map("data_exports")
-}
-
-// Data Retention Policies
-model RetentionPolicy {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  description String?
-
-  // Scope
-  entityType String // "Case", "Document", "AuditLog", etc.
-  conditions Json? // Conditions for applying this policy
-
-  // Retention rules
-  retentionPeriod   Int // Days to retain
-  actionAfterExpiry RetentionAction @default(ARCHIVE)
-
-  // Legal basis
-  legalBasis String? // Legal requirement or statute
-  exceptions String[] // Conditions that extend retention
-
-  // Status
-  isActive      Boolean  @default(true)
-  effectiveDate DateTime @default(now())
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("retention_policies")
-}
-
-// System Configuration for Security
-model SecurityConfig {
-  id       String @id @default(cuid())
-  key      String @unique
-  value    String
-  dataType String @default("string") // string, number, boolean, json
-
-  // Metadata
-  description String?
-  category    String // "PASSWORD_POLICY", "SESSION_MANAGEMENT", etc.
-  isEncrypted Boolean @default(false)
-
-  // Change tracking
-  lastModifiedBy String
-  modifiedAt     DateTime @updatedAt
-
-  @@map("security_config")
-}
-
-// Security Enums
-enum SecurityClearance {
-  PUBLIC
-  INTERNAL
-  CONFIDENTIAL
-  RESTRICTED
-  SECRET
-}
-
-enum AuditSeverity {
-  LOW
-  INFO
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum AuditCategory {
-  AUTHENTICATION
-  AUTHORIZATION
-  DATA_ACCESS
-  DATA_MODIFICATION
-  SYSTEM_ACCESS
-  CONFIGURATION_CHANGE
-  SECURITY_EVENT
-  COMPLIANCE
-}
-
-enum LoginMethod {
-  PASSWORD
-  SSO
-  MFA_TOTP
-  MFA_SMS
-  MFA_EMAIL
-  CERTIFICATE
-  BIOMETRIC
-}
-
-enum FieldAccessType {
-  READ
-  WRITE
-  EXPORT
-  PRINT
-  COPY
-}
-
-enum FOILType {
-  DOCUMENTS
-  RECORDS
-  EMAILS
-  DATABASE_RECORDS
-  AUDIO_VIDEO
-  OTHER
-}
-
-enum FOILStatus {
-  RECEIVED
-  UNDER_REVIEW
-  PROCESSING
-  AWAITING_PAYMENT
-  PENDING_LEGAL_REVIEW
-  READY_FOR_RELEASE
-  RELEASED
-  PARTIALLY_RELEASED
-  DENIED
-  APPEALED
-  CLOSED
-}
-
-enum FOILResponseMethod {
-  EMAIL
-  MAIL
-  PICKUP
-  SECURE_PORTAL
-}
-
-enum DataExportType {
-  USER_DATA
-  LEGAL_HOLD
+enum DocumentCategory {
+  MOTION
+  BRIEF
+  CONTRACT
+  CORRESPONDENCE
+  DISCOVERY
+  EVIDENCE
+  RESEARCH
+  PLEADING
+  ORDER
+  JUDGMENT
+  SETTLEMENT
   FOIL_RESPONSE
-  AUDIT_REPORT
-  COMPLIANCE_REPORT
-  BACKUP
-  MIGRATION
+  TEMPLATE
+  GENERAL
 }
 
-enum ExportStatus {
+enum ApprovalStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REQUIRES_CHANGES
+}
+
+enum ReviewStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
-  FAILED
-  EXPIRED
-  DELETED
+  APPROVED
+  REJECTED
 }
 
-enum RetentionAction {
-  DELETE
-  ARCHIVE
-  REVIEW
-  NOTIFY
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
 }
+
+enum TaskType {
+  RESEARCH
+  DRAFTING
+  FILING
+  DISCOVERY
+  MEETING
+  PHONE_CALL
+  COURT_APPEARANCE
+  CLIENT_COMMUNICATION
+  ADMINISTRATIVE
+  GENERAL
+}
+
+enum FoilStatus {
+  RECEIVED
+  UNDER_REVIEW
+  PROCESSING
+  COMPLETED
+  DENIED
+  PARTIALLY_GRANTED
+  REFERRED
+  WITHDRAWN
+}
+
+enum RequesterType {
+  INDIVIDUAL
+  MEDIA
+  ATTORNEY
+  BUSINESS
+  NON_PROFIT
+  GOVERNMENT
+  OTHER
+}
+
+enum PhysicalFileStatus {
+  ACTIVE
+  CHECKED_OUT
+  ARCHIVED
+  DESTROYED
+  LOST
+}
+
+enum EDiscoveryStatus {
+  COLLECTED
+  PROCESSED
+  REVIEWED
+  PRODUCED
+  WITHHELD
+}
+
+enum InterAgencyRequestType {
+  LEGAL_ASSISTANCE
+  DOCUMENT_REVIEW
+  POLICY_GUIDANCE
+  TRAINING
+  REPRESENTATION
+  OTHER
+}
+
+enum RequestStatus {
+  RECEIVED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+  REMINDER
+  DEADLINE
+  ASSIGNMENT
+}
+

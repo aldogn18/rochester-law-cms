@@ -1,0 +1,89 @@
+{
+  "name": "Rochester Law Department - Case Management System",
+  "short_name": "Rochester Law CMS",
+  "description": "Modern legal case management system for the City of Rochester Law Department",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png", 
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "features": [
+    "Case Management",
+    "Document Storage",
+    "Calendar Integration",
+    "Evidence Tracking",
+    "FOIL Request Processing"
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Cases",
+      "short_name": "Cases",
+      "description": "View and manage legal cases",
+      "url": "/dashboard/cases",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Calendar",
+      "short_name": "Calendar",
+      "description": "Legal calendar and events",
+      "url": "/dashboard/calendar",
+      "icons": [
+        {
+          "src": "/icon-192.png", 
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "short_name": "Documents",
+      "description": "Legal document management",
+      "url": "/dashboard/documents",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

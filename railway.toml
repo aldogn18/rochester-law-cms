@@ -1,0 +1,13 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[environments.production.variables]
+NODE_ENV = "production"
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+NEXTAUTH_URL = "${{Railway.PUBLIC_DOMAIN}}"
+NEXTAUTH_SECRET = "${{NEXTAUTH_SECRET}}"

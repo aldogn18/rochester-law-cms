@@ -11,6 +11,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Rochester Law Department - Case Management System",
   description: "Modern legal case management system for the City of Rochester Law Department",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({
@@ -20,9 +25,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Rochester Law CMS" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-gray-50`}>
         <AuthProvider>
-          {children}
+          <div className="min-h-screen pt-safe-top pb-safe-bottom pl-safe-left pr-safe-right">
+            {children}
+          </div>
         </AuthProvider>
       </body>
     </html>
