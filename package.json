@@ -29,6 +29,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/bcryptjs": "^2.4.0",
     "@types/pg": "^8.10.0",
+    "@types/qrcode": "^1.5.5",
     "bcryptjs": "^2.4.0",
     "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.0",
