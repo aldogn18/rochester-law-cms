@@ -16,8 +16,8 @@ import {
   Clock,
   ArrowLeft,
   Building,
-  CheckIn,
-  CheckOut,
+  LogIn,
+  LogOut,
   AlertTriangle,
   FileBox,
   Truck,
@@ -195,7 +195,7 @@ const statusStyles = {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'ACTIVE': return FileBox
-    case 'CHECKED_OUT': return CheckOut
+    case 'CHECKED_OUT': return LogOut
     case 'ARCHIVED': return Archive
     case 'DESTROYED': return Truck
     case 'LOST': return AlertTriangle
@@ -344,7 +344,7 @@ export default function PhysicalFilesPage() {
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center">
-              <CheckOut className="h-8 w-8 text-yellow-600" />
+              <LogOut className="h-8 w-8 text-yellow-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Checked Out</p>
                 <p className="text-2xl font-bold text-gray-900">
@@ -579,11 +579,11 @@ export default function PhysicalFilesPage() {
                     </button>
                     {file.status === 'ACTIVE' ? (
                       <button className="text-yellow-600 hover:text-yellow-900 p-2 rounded-md hover:bg-yellow-50">
-                        <CheckOut className="h-4 w-4" />
+                        <LogOut className="h-4 w-4" />
                       </button>
                     ) : file.status === 'CHECKED_OUT' ? (
                       <button className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50">
-                        <CheckIn className="h-4 w-4" />
+                        <LogIn className="h-4 w-4" />
                       </button>
                     ) : null}
                     <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
