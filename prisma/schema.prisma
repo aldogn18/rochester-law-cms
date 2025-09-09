@@ -1210,3 +1210,51 @@ model Message {
   @@map("messages")
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
+}
+
+enum UpdateType {
+  STATUS_CHANGE
+  ASSIGNMENT
+  COMMENT
+  DOCUMENT_ADDED
+  DEADLINE_CHANGE
+  PRIORITY_CHANGE
+  GENERAL
+}
+
+enum CasePersonRole {
+  CLIENT
+  DEFENDANT
+  PLAINTIFF
+  WITNESS
+  ATTORNEY
+  PARALEGAL
+  OTHER_PARTY
+  EXPERT_WITNESS
+  COURT_REPORTER
+  OTHER
+}
+
+enum CaseOutcome {
+  PENDING
+  WON
+  LOST
+  SETTLED
+  DISMISSED
+  WITHDRAWN
+  TRANSFERRED
+  OTHER
+}
+
