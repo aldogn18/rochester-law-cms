@@ -50,6 +50,9 @@ model User {
   createdPersons       Person[]
   activities           Activity[]
   custodyLogs          CustodyLog[]
+  assignedLegalRequests LegalRequest[] @relation("AssignedLegalRequests")
+  requestUpdates       RequestUpdate[] @relation("RequestUpdates")
+  sentRequestMessages  RequestMessage[] @relation("SentRequestMessages")
 
   @@map("users")
 }
@@ -107,6 +110,7 @@ model Department {
   users              User[]
   cases              Case[]
   interAgencyRequests InterAgencyRequest[]
+  legalRequests      LegalRequest[]
 
   @@map("departments")
 }
@@ -233,6 +237,7 @@ model Case {
   physicalFiles      PhysicalFile[]
   interAgencyRequests InterAgencyRequest[]
   activities         Activity[]
+  legalRequests      LegalRequest[]
 
   @@map("cases")
 }
@@ -1049,5 +1054,108 @@ enum ReminderType {
   EMAIL
   SMS
   PUSH
+}
+
+enum RequestCategory {
+  CONTRACT_REVIEW
+  LEGAL_OPINION
+  COMPLIANCE
+  LITIGATION_SUPPORT
+  POLICY_REVIEW
+  EMPLOYMENT_LAW
+  REAL_ESTATE
+  PROCUREMENT
+  REGULATORY_GUIDANCE
+  OTHER
+}
+
+enum RequestUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model LegalRequest {
+  id               String           @id @default(cuid())
+  matterNumber     String           @unique
+  title            String
+  description      String
+  category         RequestCategory
+  urgency          RequestUrgency   @default(MEDIUM)
+  status           RequestStatus    @default(RECEIVED)
+  
+  requestorName    String
+  requestorEmail   String
+  requestorPhone   String?
+  
+  deadline         DateTime?
+  budgetLimit      Float?
+  
+  departmentId     String
+  department       Department       @relation(fields: [departmentId], references: [id])
+  
+  assignedToId     String?
+  assignedTo       User?            @relation("AssignedLegalRequests", fields: [assignedToId], references: [id])
+  
+  caseId           String?
+  case             Case?            @relation(fields: [caseId], references: [id])
+  
+  submittedAt      DateTime         @default(now())
+  assignedAt       DateTime?
+  completedAt      DateTime?
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  // Relations
+  documents        Document[]       @relation("LegalRequestDocuments")
+  updates          RequestUpdate[]
+  messages         RequestMessage[]
+  
+  @@map("legal_requests")
+}
+
+model RequestUpdate {
+  id               String           @id @default(cuid())
+  requestId        String
+  request          LegalRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  updateType       String           // STATUS_CHANGE, ASSIGNMENT, COMMENT, DOCUMENT_ADDED
+  title            String
+  description      String
+  
+  oldStatus        RequestStatus?
+  newStatus        RequestStatus?
+  
+  userId           String
+  user             User             @relation("RequestUpdates", fields: [userId], references: [id])
+  
+  visibleToClient  Boolean          @default(true)
+  
+  createdAt        DateTime         @default(now())
+  
+  @@map("request_updates")
+}
+
+model RequestMessage {
+  id               String           @id @default(cuid())
+  requestId        String
+  request          LegalRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  senderId         String
+  sender           User             @relation("SentRequestMessages", fields: [senderId], references: [id])
+  
+  subject          String?
+  content          String
+  
+  isInternal       Boolean          @default(false)
+  readAt           DateTime?
+  
+  attachmentIds    String[]         @default([])
+  
+  createdAt        DateTime         @default(now())
+  
+  @@map("request_messages")
 }
 
