@@ -49,6 +49,7 @@ model User {
   interAgencyRequests  InterAgencyRequest[] @relation("InterAgencyRequests")
   createdPersons       Person[]
   activities           Activity[]
+  custodyLogs          CustodyLog[]
 
   @@map("users")
 }
@@ -399,6 +400,7 @@ model Document {
   // Relations
   reviews         DocumentReview[]
   eDiscoveryItems EDiscoveryItem[]
+  custodyLogs     CustodyLog[]
 
   @@map("documents")
 }
@@ -649,6 +651,21 @@ model MotionBrief {
   @@map("motion_briefs")
 }
 
+// Document Custody Logging
+model CustodyLog {
+  id          String       @id @default(cuid())
+  action      CustodyAction
+  timestamp   DateTime     @default(now())
+  documentId  String
+  document    Document     @relation(fields: [documentId], references: [id])
+  performedById String?
+  performedBy User?        @relation(fields: [performedById], references: [id])
+  ipAddress   String?
+  details     String?
+  
+  @@map("custody_logs")
+}
+
 // Notifications and Alerts
 model Notification {
   id              String             @id @default(cuid())
@@ -849,6 +866,25 @@ enum DocumentCategory {
   GENERAL
 }
 
+enum DocumentType {
+  PDF
+  WORD
+  EXCEL
+  IMAGE
+  TEXT
+  EMAIL
+  VIDEO
+  AUDIO
+  OTHER
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+  PROCESSING
+}
+
 enum ApprovalStatus {
   DRAFT
   SUBMITTED
@@ -950,5 +986,68 @@ enum NotificationType {
   REMINDER
   DEADLINE
   ASSIGNMENT
+}
+
+enum CustodyAction {
+  CREATED
+  MODIFIED
+  ACCESSED
+  SHARED
+  DOWNLOADED
+  ARCHIVED
+  DELETED
+}
+
+enum CalendarEventType {
+  MEETING
+  HEARING
+  DEADLINE
+  COURT_DATE
+  DEPOSITION
+  CONFERENCE
+  GENERAL
+}
+
+enum MeetingType {
+  IN_PERSON
+  VIRTUAL
+  PHONE
+  HYBRID
+}
+
+enum VisibilityLevel {
+  PUBLIC
+  PRIVATE
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+enum ResponseStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  TENTATIVE
+}
+
+enum AttendeeType {
+  REQUIRED
+  OPTIONAL
+  RESOURCE
+  ORGANIZER
+}
+
+enum DiscoveryType {
+  DOCUMENT_PRODUCTION
+  INTERROGATORIES
+  REQUEST_FOR_ADMISSION
+  DEPOSITION
+  EXPERT_DISCLOSURE
+}
+
+enum ReminderType {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
 }
 

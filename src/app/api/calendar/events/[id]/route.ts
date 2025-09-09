@@ -7,9 +7,9 @@ import { z } from 'zod'
 import { RRule } from 'rrule'
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const updateEventSchema = z.object({
@@ -90,8 +90,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const event = await prisma.calendarEvent.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         case: {
           select: { id: true, caseNumber: true, title: true, status: true }
