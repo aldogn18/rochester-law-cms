@@ -406,6 +406,8 @@ model Document {
   reviews         DocumentReview[]
   eDiscoveryItems EDiscoveryItem[]
   custodyLogs     CustodyLog[]
+  legalRequest    LegalRequest?    @relation("LegalRequestDocuments", fields: [legalRequestId], references: [id])
+  legalRequestId  String?
 
   @@map("documents")
 }
