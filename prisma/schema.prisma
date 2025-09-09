@@ -53,6 +53,7 @@ model User {
   assignedLegalRequests LegalRequest[] @relation("AssignedLegalRequests")
   requestUpdates       RequestUpdate[] @relation("RequestUpdates")
   sentRequestMessages  RequestMessage[] @relation("SentRequestMessages")
+  sentMessages         Message[] @relation("SentMessages")
 
   @@map("users")
 }
@@ -111,6 +112,7 @@ model Department {
   cases              Case[]
   interAgencyRequests InterAgencyRequest[]
   legalRequests      LegalRequest[]
+  messages           Message[] @relation("DepartmentMessages")
 
   @@map("departments")
 }
@@ -238,6 +240,7 @@ model Case {
   interAgencyRequests InterAgencyRequest[]
   activities         Activity[]
   legalRequests      LegalRequest[]
+  messages           Message[] @relation("CaseMessages")
 
   @@map("cases")
 }
@@ -1114,6 +1117,7 @@ model LegalRequest {
   documents        Document[]       @relation("LegalRequestDocuments")
   updates          RequestUpdate[]
   messages         RequestMessage[]
+  generalMessages  Message[]        @relation("LegalRequestMessages")
   
   @@map("legal_requests")
 }
@@ -1159,5 +1163,50 @@ model RequestMessage {
   createdAt        DateTime         @default(now())
   
   @@map("request_messages")
+}
+
+enum MessageType {
+  GENERAL
+  CASE_UPDATE
+  DOCUMENT_SHARE
+  REMINDER
+  NOTIFICATION
+  INQUIRY
+  INTERNAL
+  CLIENT_COMMUNICATION
+}
+
+model Message {
+  id               String           @id @default(cuid())
+  subject          String?
+  content          String
+  messageType      MessageType      @default(GENERAL)
+  
+  senderId         String
+  sender           User             @relation("SentMessages", fields: [senderId], references: [id])
+  
+  departmentId     String
+  department       Department       @relation("DepartmentMessages", fields: [departmentId], references: [id])
+  
+  caseId           String?
+  case             Case?            @relation("CaseMessages", fields: [caseId], references: [id])
+  
+  requestId        String?
+  legalRequest     LegalRequest?    @relation("LegalRequestMessages", fields: [requestId], references: [id])
+  
+  parentId         String?
+  parent           Message?         @relation("MessageReplies", fields: [parentId], references: [id])
+  replies          Message[]        @relation("MessageReplies")
+  
+  isArchived       Boolean          @default(false)
+  isRead           Boolean          @default(false)
+  readAt           DateTime?
+  
+  attachmentIds    String[]         @default([])
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  @@map("messages")
 }
 
