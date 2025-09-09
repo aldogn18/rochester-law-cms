@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           status: 'ACTIVE'
         },
         include: {
-          uploadedBy: {
+          createdBy: {
             select: { id: true, name: true, email: true }
           },
           custodyLogs: {

@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     } = auditQuerySchema.parse(queryParams)
 
     // Build where clause
-    const where: any = {}
+    const where: { [key: string]: any } = {}
 
     if (action) where.action = { contains: action, mode: 'insensitive' }
     if (entityType) where.entityType = entityType

@@ -48,6 +48,7 @@ model User {
   approvedMotionBriefs MotionBrief[] @relation("ApprovedMotionBriefs") 
   interAgencyRequests  InterAgencyRequest[] @relation("InterAgencyRequests")
   createdPersons       Person[]
+  activities           Activity[]
 
   @@map("users")
 }
@@ -230,8 +231,26 @@ model Case {
   eDiscoveryItems    EDiscoveryItem[]
   physicalFiles      PhysicalFile[]
   interAgencyRequests InterAgencyRequest[]
+  activities         Activity[]
 
   @@map("cases")
+}
+
+// Activity Logging
+model Activity {
+  id          String   @id @default(cuid())
+  action      String
+  entityType  String  
+  entityId    String?
+  description String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  caseId      String?
+  case        Case?    @relation(fields: [caseId], references: [id])
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  @@map("activities")
 }
 
 model CasePersonInvolvement {

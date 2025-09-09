@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         ]
       },
       include: {
-        uploadedBy: {
+        createdBy: {
           select: { id: true, name: true, email: true }
         },
         reviewer: {
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         documentType: parentDocument.documentType,
         caseId: parentDocument.caseId,
         folderId: parentDocument.folderId,
-        uploadedById: session.user.id,
+        createdById: session.user.id,
         isConfidential: parentDocument.isConfidential,
         isPrivileged: parentDocument.isPrivileged,
         securityLevel: parentDocument.securityLevel,
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         custodian: parentDocument.custodian
       },
       include: {
-        uploadedBy: {
+        createdBy: {
           select: { id: true, name: true, email: true }
         },
         parent: {

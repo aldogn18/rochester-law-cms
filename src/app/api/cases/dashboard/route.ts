@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createTenantService } from '@/lib/tenant'
 import { hasPermission } from '@/lib/auth/permissions'
-import { CaseStatus, CasePriority, CaseType } from '@prisma/client'
+import { CaseStatus, Priority, CaseType } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       prisma.case.count({
         where: {
           ...departmentFilter,
-          priority: { in: [CasePriority.HIGH, CasePriority.URGENT] },
+          priority: { in: [Priority.HIGH, Priority.CRITICAL] },
           status: { not: CaseStatus.CLOSED }
         }
       }),

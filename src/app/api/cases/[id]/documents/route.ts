@@ -86,7 +86,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.document.findMany({
         where,
         include: {
-          uploadedBy: {
+          createdBy: {
             select: { id: true, name: true, email: true }
           },
           folder: {
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           documentType: documentType,
           caseId: caseId,
           folderId: parsedMetadata.folderId || null,
-          uploadedById: session.user.id,
+          createdById: session.user.id,
           isConfidential: parsedMetadata.isConfidential || false,
           isPrivileged: parsedMetadata.isPrivileged || false,
           securityLevel: parsedMetadata.securityLevel || SecurityLevel.INTERNAL,
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           custodian: parsedMetadata.custodian || session.user.name || session.user.email
         },
         include: {
-          uploadedBy: {
+          createdBy: {
             select: { id: true, name: true, email: true }
           },
           folder: {

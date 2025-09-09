@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
           fileName: documentData.fileName,
           fileSize: documentData.fileSize,
           filePath: `/demo/documents/${documentData.fileName}`,
-          uploadedBy: documentData.createdBy,
+          createdBy: documentData.createdBy,
           uploadedAt: new Date(documentData.createdDate),
           changeDescription: 'Initial version',
           isDemo: true

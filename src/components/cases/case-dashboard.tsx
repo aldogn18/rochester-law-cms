@@ -17,7 +17,7 @@ import {
   Search,
   Plus
 } from 'lucide-react'
-import { CaseStatus, CasePriority, CaseType } from '@prisma/client'
+import { CaseStatus, Priority, CaseType } from '@prisma/client'
 
 interface CaseDashboardStats {
   totalCases: number
@@ -38,7 +38,7 @@ interface CaseDashboardStats {
     percentage: number
   }>
   casesByPriority: Array<{
-    priority: CasePriority
+    priority: Priority
     count: number
     percentage: number
   }>
@@ -102,12 +102,12 @@ export function CaseDashboard({ onNewCase, onViewAllCases, onAdvancedSearch }: C
     }
   }
 
-  const getPriorityColor = (priority: CasePriority) => {
+  const getPriorityColor = (priority: Priority) => {
     switch (priority) {
-      case CasePriority.URGENT: return 'text-red-600 bg-red-50'
-      case CasePriority.HIGH: return 'text-orange-600 bg-orange-50'
-      case CasePriority.MEDIUM: return 'text-yellow-600 bg-yellow-50'
-      case CasePriority.LOW: return 'text-green-600 bg-green-50'
+      case Priority.URGENT: return 'text-red-600 bg-red-50'
+      case Priority.HIGH: return 'text-orange-600 bg-orange-50'
+      case Priority.MEDIUM: return 'text-yellow-600 bg-yellow-50'
+      case Priority.LOW: return 'text-green-600 bg-green-50'
       default: return 'text-gray-600 bg-gray-50'
     }
   }

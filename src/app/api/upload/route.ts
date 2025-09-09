@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         fileSize: file.size,
         documentType: documentType as any || 'OTHER',
         caseId: caseId,
-        uploadedById: session.user.id,
+        createdById: session.user.id,
         isConfidential: isConfidential,
         tags: []
       },
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
             caseNumber: true
           }
         },
-        uploadedBy: {
+        createdBy: {
           select: {
             id: true,
             name: true,

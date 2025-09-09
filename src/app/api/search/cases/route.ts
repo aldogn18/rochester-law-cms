@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createTenantService } from '@/lib/tenant'
 import { hasPermission } from '@/lib/auth/permissions'
-import { CaseStatus, CasePriority, CaseType, CasePersonRole } from '@prisma/client'
+import { CaseStatus, Priority, CaseType, CasePersonRole } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       where.status = searchParams.get('status') as CaseStatus
     }
     if (searchParams.get('priority')) {
-      where.priority = searchParams.get('priority') as CasePriority
+      where.priority = searchParams.get('priority') as Priority
     }
     if (searchParams.get('caseType')) {
       where.caseType = searchParams.get('caseType') as CaseType

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         folder: {
           select: { id: true, name: true, path: true }
         },
-        uploadedBy: {
+        createdBy: {
           select: { id: true, name: true, email: true }
         },
         reviewer: {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             name: true, 
             version: true, 
             createdAt: true,
-            uploadedBy: {
+            createdBy: {
               select: { name: true, email: true }
             }
           },
@@ -219,7 +219,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         discoverySet: body.discoverySet !== undefined ? body.discoverySet : existingDocument.discoverySet
       },
       include: {
-        uploadedBy: {
+        createdBy: {
           select: { id: true, name: true, email: true }
         },
         folder: {

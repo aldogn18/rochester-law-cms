@@ -18,13 +18,13 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarIcon, Plus, X } from 'lucide-react'
-import { CaseType, CasePriority } from '@prisma/client'
+import { CaseType, Priority } from '@prisma/client'
 
 const caseSchema = z.object({
   title: z.string().min(1, 'Case title is required'),
   description: z.string().optional(),
   caseType: z.nativeEnum(CaseType),
-  priority: z.nativeEnum(CasePriority),
+  priority: z.nativeEnum(Priority),
   subType: z.string().optional(),
   practiceArea: z.string().optional(),
   jurisdiction: z.string().optional(),
@@ -73,7 +73,7 @@ export function CaseForm({ onSubmit, onCancel, initialData, isEditing = false }:
   } = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
     defaultValues: {
-      priority: CasePriority.MEDIUM,
+      priority: Priority.MEDIUM,
       caseType: CaseType.OTHER,
       tags: [],
       ...initialData
@@ -126,7 +126,7 @@ export function CaseForm({ onSubmit, onCancel, initialData, isEditing = false }:
     label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }))
 
-  const priorities = Object.values(CasePriority).map(priority => ({
+  const priorities = Object.values(Priority).map(priority => ({
     value: priority,
     label: priority.charAt(0) + priority.slice(1).toLowerCase()
   }))
@@ -179,8 +179,8 @@ export function CaseForm({ onSubmit, onCancel, initialData, isEditing = false }:
             <div>
               <Label htmlFor="priority">Priority *</Label>
               <Select
-                onValueChange={(value) => setValue('priority', value as CasePriority)}
-                defaultValue={initialData?.priority || CasePriority.MEDIUM}
+                onValueChange={(value) => setValue('priority', value as Priority)}
+                defaultValue={initialData?.priority || Priority.MEDIUM}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />

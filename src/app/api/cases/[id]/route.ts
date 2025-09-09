@@ -93,7 +93,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             documentType: true,
             fileSize: true,
             createdAt: true,
-            uploadedBy: {
+            createdBy: {
               select: {
                 name: true,
                 email: true

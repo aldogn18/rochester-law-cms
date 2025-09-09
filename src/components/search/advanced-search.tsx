@@ -27,7 +27,7 @@ import {
   User,
   Scale
 } from 'lucide-react'
-import { CaseStatus, CasePriority, CaseType, UserRole } from '@prisma/client'
+import { CaseStatus, Priority, CaseType, UserRole } from '@prisma/client'
 
 const searchSchema = z.object({
   // Basic search
@@ -87,7 +87,7 @@ interface SearchResult {
   caseNumber: string
   title: string
   status: CaseStatus
-  priority: CasePriority
+  priority: Priority
   caseType: CaseType
   assignedTo?: { name: string; email: string }
   createdAt: string
@@ -282,7 +282,7 @@ export function AdvancedSearch({ onResultsChange }: AdvancedSearchProps) {
     label: status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
   }))
 
-  const casePriorities = Object.values(CasePriority).map(priority => ({
+  const casePriorities = Object.values(Priority).map(priority => ({
     value: priority,
     label: priority.charAt(0) + priority.slice(1).toLowerCase()
   }))
@@ -637,8 +637,8 @@ export function AdvancedSearch({ onResultsChange }: AdvancedSearchProps) {
                           {result.status.replace(/_/g, ' ')}
                         </span>
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                          result.priority === CasePriority.URGENT ? 'text-red-600 bg-red-50' :
-                          result.priority === CasePriority.HIGH ? 'text-orange-600 bg-orange-50' :
+                          result.priority === Priority.URGENT ? 'text-red-600 bg-red-50' :
+                          result.priority === Priority.HIGH ? 'text-orange-600 bg-orange-50' :
                           'text-yellow-600 bg-yellow-50'
                         }`}>
                           {result.priority.toLowerCase()}

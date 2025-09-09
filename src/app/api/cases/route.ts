@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createTenantService } from '@/lib/tenant'
 import { hasPermission } from '@/lib/auth/permissions'
-import { CaseType, CasePriority, CaseStatus } from '@prisma/client'
+import { CaseType, Priority, CaseStatus } from '@prisma/client'
 
 // Auto-generate case number
 async function generateCaseNumber(departmentId: string): Promise<string> {
@@ -66,29 +66,22 @@ export async function POST(request: NextRequest) {
         title: body.title,
         description: body.description || null,
         caseType: body.caseType as CaseType,
-        priority: body.priority as CasePriority,
+        priority: body.priority as Priority,
         subType: body.subType || null,
-        practiceArea: body.practiceArea || null,
-        jurisdiction: body.jurisdiction || null,
-        courtCase: body.courtCase || null,
-        departmentId: session.user.departmentId!,
-        assignedToId: body.assignedToId || null,
-        paralegalId: body.paralegalId || null,
+        clientDepartmentId: session.user.departmentId!,
+        assignedAttorneyId: body.assignedToId || null,
+        assignedParalegalId: body.paralegalId || null,
         createdById: session.user.id,
-        filedDate: body.filedDate ? new Date(body.filedDate) : null,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        statueOfLimitations: body.statueOfLimitations ? new Date(body.statueOfLimitations) : null,
-        discoveryDeadline: body.discoveryDeadline ? new Date(body.discoveryDeadline) : null,
-        trialDate: body.trialDate ? new Date(body.trialDate) : null,
+        statuteOfLimitations: body.statueOfLimitations ? new Date(body.statueOfLimitations) : null,
         estimatedValue: body.estimatedValue ? parseFloat(body.estimatedValue) : null,
-        budgetAmount: body.budgetAmount ? parseFloat(body.budgetAmount) : null,
-        billingRate: body.billingRate ? parseFloat(body.billingRate) : null,
-        tags: body.tags || []
+        budgetAllocated: body.budgetAmount ? parseFloat(body.budgetAmount) : null,
+        billingRate: body.billingRate ? parseFloat(body.billingRate) : null
       },
       include: {
-        department: true,
-        assignedTo: { select: { id: true, name: true, email: true } },
-        paralegal: { select: { id: true, name: true, email: true } },
+        clientDepartment: true,
+        assignedAttorney: { select: { id: true, name: true, email: true } },
+        assignedParalegal: { select: { id: true, name: true, email: true } },
         createdBy: { select: { id: true, name: true, email: true } },
         _count: {
           select: {
@@ -161,21 +154,19 @@ export async function GET(request: NextRequest) {
 
     // Build filters
     const where: any = {
-      departmentId: session.user.departmentId
+      clientDepartmentId: session.user.departmentId
     }
 
     if (status) where.status = status as CaseStatus
-    if (priority) where.priority = priority as CasePriority
+    if (priority) where.priority = priority as Priority
     if (caseType) where.caseType = caseType as CaseType
-    if (assignedToId) where.assignedToId = assignedToId
+    if (assignedToId) where.assignedAttorneyId = assignedToId
 
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { caseNumber: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { courtCase: { contains: search, mode: 'insensitive' } },
-        { tags: { has: search } }
+        { description: { contains: search, mode: 'insensitive' } }
       ]
     }
 
@@ -184,11 +175,11 @@ export async function GET(request: NextRequest) {
       prisma.case.findMany({
         where,
         include: {
-          department: { select: { name: true, code: true } },
-          assignedTo: { select: { id: true, name: true, email: true } },
-          paralegal: { select: { id: true, name: true, email: true } },
+          clientDepartment: { select: { name: true, code: true } },
+          assignedAttorney: { select: { id: true, name: true, email: true } },
+          assignedParalegal: { select: { id: true, name: true, email: true } },
           createdBy: { select: { id: true, name: true, email: true } },
-          casePersons: {
+          personInvolvements: {
             include: {
               person: true
             }

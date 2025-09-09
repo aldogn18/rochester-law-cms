@@ -20,7 +20,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react'
-import { CaseStatus, CasePriority, CaseType, CaseOutcome, CasePersonRole } from '@prisma/client'
+import { CaseStatus, Priority, CaseType, CaseOutcome, CasePersonRole } from '@prisma/client'
 import { canEditCase } from '@/lib/auth/permissions'
 
 interface CaseDetailProps {
@@ -33,7 +33,7 @@ interface CaseData {
   title: string
   description?: string
   status: CaseStatus
-  priority: CasePriority
+  priority: Priority
   caseType: CaseType
   subType?: string
   practiceArea?: string
@@ -191,12 +191,12 @@ export function CaseDetail({ caseId }: CaseDetailProps) {
     }
   }
 
-  const getPriorityColor = (priority: CasePriority) => {
+  const getPriorityColor = (priority: Priority) => {
     switch (priority) {
-      case CasePriority.URGENT: return 'bg-red-100 text-red-800'
-      case CasePriority.HIGH: return 'bg-orange-100 text-orange-800'
-      case CasePriority.MEDIUM: return 'bg-yellow-100 text-yellow-800'
-      case CasePriority.LOW: return 'bg-green-100 text-green-800'
+      case Priority.URGENT: return 'bg-red-100 text-red-800'
+      case Priority.HIGH: return 'bg-orange-100 text-orange-800'
+      case Priority.MEDIUM: return 'bg-yellow-100 text-yellow-800'
+      case Priority.LOW: return 'bg-green-100 text-green-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
