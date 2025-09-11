@@ -148,10 +148,10 @@ export default function CasesPage() {
     lastActivity: new Date().toISOString().split('T')[0]
   })
 
-  const filteredCases = cases.filter(case_ => {
-    const matchesSearch = case_.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         case_.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         case_.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCases = (cases || []).filter(case_ => {
+    const matchesSearch = (case_.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (case_.caseNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (case_.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || case_.status === statusFilter
     const matchesPriority = priorityFilter === 'ALL' || case_.priority === priorityFilter
     
@@ -188,16 +188,16 @@ export default function CasesPage() {
   const handleEdit = (case_: any) => {
     setEditingCase(case_)
     setFormData({
-      caseNumber: case_.caseNumber,
-      title: case_.title,
-      description: case_.description,
-      status: case_.status,
-      priority: case_.priority,
-      type: case_.type,
-      assignedAttorney: case_.assignedAttorney,
-      department: case_.department,
-      dateOpened: case_.dateOpened,
-      lastActivity: case_.lastActivity
+      caseNumber: case_.caseNumber || '',
+      title: case_.title || '',
+      description: case_.description || '',
+      status: case_.status || 'OPEN',
+      priority: case_.priority || 'MEDIUM',
+      type: case_.type || 'LITIGATION',
+      assignedAttorney: case_.assignedAttorney || '',
+      department: case_.department || '',
+      dateOpened: case_.dateOpened || new Date().toISOString().split('T')[0],
+      lastActivity: case_.lastActivity || new Date().toISOString().split('T')[0]
     })
     setShowAddModal(true)
   }
@@ -374,13 +374,13 @@ export default function CasesPage() {
                           </span>
                         </div>
                         <div className="text-sm text-gray-900 font-medium mt-1">
-                          {case_.title}
+                          {case_.title || ''}
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                          {case_.description}
+                          {case_.description || ''}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {case_.tags.map((tag, index) => (
+                          {(case_.tags || []).map((tag, index) => (
                             <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                               {tag}
                             </span>
@@ -390,19 +390,19 @@ export default function CasesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[case_.status as keyof typeof statusStyles]}`}>
-                        {case_.status.replace('_', ' ')}
+                        {(case_.status || '').replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <div className="text-sm text-gray-900">{case_.assignedAttorney}</div>
-                        <div className="text-sm text-gray-500">{case_.assignedParalegal}</div>
-                        <div className="text-xs text-gray-400 mt-1">{case_.clientDepartment}</div>
+                        <div className="text-sm text-gray-900">{case_.assignedAttorney || ''}</div>
+                        <div className="text-sm text-gray-500">{case_.assignedParalegal || ''}</div>
+                        <div className="text-xs text-gray-400 mt-1">{case_.clientDepartment || ''}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{case_.dueDate}</div>
-                      {case_.status !== 'CLOSED' && (
+                      <div className="text-sm text-gray-900">{case_.dueDate || ''}</div>
+                      {case_.status !== 'CLOSED' && case_.dueDate && (
                         <div className="text-xs text-gray-500">
                           {new Date(case_.dueDate) < new Date() ? (
                             <span className="text-red-600 font-medium">Overdue</span>
@@ -417,8 +417,8 @@ export default function CasesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {case_.nextEvent && (
                         <div className="flex flex-col">
-                          <div className="text-sm text-gray-900">{case_.nextEvent}</div>
-                          <div className="text-sm text-gray-500">{case_.nextEventDate}</div>
+                          <div className="text-sm text-gray-900">{case_.nextEvent || ''}</div>
+                          <div className="text-sm text-gray-500">{case_.nextEventDate || ''}</div>
                         </div>
                       )}
                     </td>

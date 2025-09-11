@@ -158,12 +158,12 @@ export default function PersonsPage() {
   const [securityFilter, setSecurityFilter] = useState('ALL')
 
   const { persons } = useDemoStore()
-  const filteredPersons = persons.filter(person => {
-    const fullName = `${person.firstName} ${person.lastName}`.toLowerCase()
+  const filteredPersons = (persons || []).filter(person => {
+    const fullName = `${(person.firstName || '')} ${(person.lastName || '')}`.toLowerCase()
     
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         person.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         person.phone?.includes(searchTerm)
+                         (person.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (person.phone || '').includes(searchTerm)
                          
     const matchesType = typeFilter === 'ALL' || person.role === typeFilter
     const matchesSecurity = securityFilter === 'ALL' || true // Skip security filter for demo
@@ -250,7 +250,7 @@ export default function PersonsPage() {
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Persons/Entities</p>
-                <p className="text-2xl font-bold text-gray-900">{persons.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(persons || []).length}</p>
               </div>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Individuals</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {persons.filter(p => p.role === 'WITNESS').length}
+                  {(persons || []).filter(p => p.role === 'WITNESS').length}
                 </p>
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Entities</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {persons.filter(p => p.organization).length}
+                  {(persons || []).filter(p => (p.organization || '')).length}
                 </p>
               </div>
             </div>
@@ -282,7 +282,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Confidential</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {persons.filter(p => p.role === 'OPPOSING_PARTY').length}
+                  {(persons || []).filter(p => p.role === 'OPPOSING_PARTY').length}
                 </p>
               </div>
             </div>
@@ -318,17 +318,17 @@ export default function PersonsPage() {
                       <div className="flex items-center space-x-2">
                         <h4 className="text-lg font-medium text-gray-900 truncate">
                           {person.type === 'INDIVIDUAL' 
-                            ? `${person.firstName} ${person.lastName}`
-                            : person.businessName
+                            ? `${(person.firstName || '')} ${(person.lastName || '')}`
+                            : (person.businessName || '')
                           }
                         </h4>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${personTypeStyles[person.type as keyof typeof personTypeStyles]}`}>
-                          {person.type.replace('_', ' ')}
+                          {(person.type || '').replace('_', ' ')}
                         </span>
-                        {person.securityLevel !== 'BASIC' && (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${securityLevelStyles[person.securityLevel as keyof typeof securityLevelStyles]}`}>
+                        {(person.securityLevel || 'BASIC') !== 'BASIC' && (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${securityLevelStyles[(person.securityLevel || 'BASIC') as keyof typeof securityLevelStyles]}`}>
                             <Shield className="h-3 w-3 mr-1" />
-                            {person.securityLevel}
+                            {person.securityLevel || 'BASIC'}
                           </span>
                         )}
                       </div>
@@ -344,8 +344,8 @@ export default function PersonsPage() {
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <MapPin className="h-4 w-4 mr-2" />
-                          {person.addresses[0] 
-                            ? `${person.addresses[0].city}, ${person.addresses[0].state}`
+                          {(person.addresses || [])[0] 
+                            ? `${((person.addresses || [])[0].city || '')}, ${((person.addresses || [])[0].state || '')}`
                             : 'No address'
                           }
                         </div>
@@ -367,9 +367,9 @@ export default function PersonsPage() {
                       )}
                       
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {person.involvementRoles.map((role, index) => (
+                        {(person.involvementRoles || []).map((role, index) => (
                           <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                            {role.replace('_', ' ')}
+                            {(role || '').replace('_', ' ')}
                           </span>
                         ))}
                       </div>

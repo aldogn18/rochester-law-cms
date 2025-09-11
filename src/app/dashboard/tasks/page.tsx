@@ -153,7 +153,7 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [assigneeFilter, setAssigneeFilter] = useState('ALL')
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = mockTasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
@@ -311,7 +311,7 @@ export default function TasksPage() {
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[task.status as keyof typeof statusStyles]}`}>
-                        {task.status.replace('_', ' ')}
+                        {(task.status || '').replace('_', ' ')}
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityStyles[task.priority as keyof typeof priorityStyles]}`}>
                         <Flag className="w-3 h-3 mr-1" />

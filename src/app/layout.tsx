@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/providers/session-provider";
@@ -11,11 +11,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Rochester Law Department - Case Management System",
   description: "Modern legal case management system for the City of Rochester Law Department",
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

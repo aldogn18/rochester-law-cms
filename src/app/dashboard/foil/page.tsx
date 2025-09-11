@@ -186,11 +186,11 @@ export default function FOILPage() {
   const [urgencyFilter, setUrgencyFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
 
-  const filteredRequests = foilRequests.filter(req => {
-    const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         req.requestNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         req.requestedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         req.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRequests = (foilRequests || []).filter(req => {
+    const matchesSearch = (req.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (req.requestNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (req.requestedBy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (req.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter
     const matchesUrgency = urgencyFilter === 'ALL' || req.priority === urgencyFilter
     
@@ -285,7 +285,7 @@ export default function FOILPage() {
               <FileText className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Requests</p>
-                <p className="text-2xl font-bold text-gray-900">{foilRequests.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(foilRequests || []).length}</p>
               </div>
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {foilRequests.filter(r => r.status === 'UNDER_REVIEW').length}
+                  {(foilRequests || []).filter(r => r.status === 'UNDER_REVIEW').length}
                 </p>
               </div>
             </div>
@@ -306,7 +306,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {foilRequests.filter(r => new Date(r.dueDate) < new Date() && r.status !== 'APPROVED').length}
+                  {(foilRequests || []).filter(r => r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'APPROVED').length}
                 </p>
               </div>
             </div>
@@ -317,7 +317,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {foilRequests.filter(r => r.status === 'APPROVED').length}
+                  {(foilRequests || []).filter(r => r.status === 'APPROVED').length}
                 </p>
               </div>
             </div>
@@ -332,9 +332,9 @@ export default function FOILPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{request.requestNumber}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{request.requestNumber || ''}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[request.status as keyof typeof statusStyles]}`}>
-                        {request.status.replace('_', ' ')}
+                        {(request.status || '').replace('_', ' ')}
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[request.urgency as keyof typeof urgencyStyles]}`}>
                         {request.urgency}
@@ -348,11 +348,11 @@ export default function FOILPage() {
                         </span>
                       )}
                     </div>
-                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{request.subject}</h4>
-                    <p className="text-gray-600 mb-4">{request.description}</p>
-                    {request.dateRange && (
+                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{request.subject || ''}</h4>
+                    <p className="text-gray-600 mb-4">{request.description || ''}</p>
+                    {(request.dateRange || '') && (
                       <p className="text-sm text-gray-500 mb-2">
-                        <strong>Date Range:</strong> {request.dateRange}
+                        <strong>Date Range:</strong> {request.dateRange || ''}
                       </p>
                     )}
                   </div>
@@ -375,20 +375,20 @@ export default function FOILPage() {
                     <div className="space-y-2">
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-16">Name:</strong>
-                        <span className="text-gray-600">{request.requesterName}</span>
+                        <span className="text-gray-600">{request.requesterName || ''}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.requesterEmail}</span>
+                        <span className="text-gray-600">{request.requesterEmail || ''}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.requesterPhone}</span>
+                        <span className="text-gray-600">{request.requesterPhone || ''}</span>
                       </div>
-                      {request.organization && (
+                      {(request.organization || '') && (
                         <div className="flex items-start text-sm">
                           <strong className="text-gray-900 w-16">Org:</strong>
-                          <span className="text-gray-600">{request.organization}</span>
+                          <span className="text-gray-600">{request.organization || ''}</span>
                         </div>
                       )}
                     </div>
@@ -401,14 +401,14 @@ export default function FOILPage() {
                       <div className="flex items-center text-sm">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Received: {new Date(request.receivedAt).toLocaleDateString()}
+                          Received: {request.receivedAt ? new Date(request.receivedAt).toLocaleDateString() : ''}
                         </span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Timer className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Due: {new Date(request.dueDate).toLocaleDateString()}
-                          {request.status !== 'COMPLETED' && request.status !== 'DENIED' && (
+                          Due: {request.dueDate ? new Date(request.dueDate).toLocaleDateString() : ''}
+                          {request.status !== 'COMPLETED' && request.status !== 'DENIED' && request.dueDate && (
                             <span className={`ml-1 ${getDaysRemaining(request.dueDate) < 0 ? 'text-red-600' : getDaysRemaining(request.dueDate) <= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
                               ({getDaysRemaining(request.dueDate) < 0 ? `${Math.abs(getDaysRemaining(request.dueDate))} days overdue` : `${getDaysRemaining(request.dueDate)} days left`})
                             </span>
@@ -417,15 +417,15 @@ export default function FOILPage() {
                       </div>
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-20">Assigned:</strong>
-                        <span className="text-gray-600">{request.assignedTo}</span>
+                        <span className="text-gray-600">{request.assignedTo || ''}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-20">Method:</strong>
-                        <span className="text-gray-600">{request.responseMethod}</span>
+                        <span className="text-gray-600">{request.responseMethod || ''}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.timeSpentHours} hours spent</span>
+                        <span className="text-gray-600">{request.timeSpentHours || 0} hours spent</span>
                       </div>
                     </div>
                   </div>
@@ -451,13 +451,13 @@ export default function FOILPage() {
                         <strong className="text-gray-900 w-20">Redactions:</strong>
                         <span className="text-gray-600">{request.redactionsRequired ? 'Required' : 'None'}</span>
                       </div>
-                      {request.exemptionsApplied.length > 0 && (
+                      {(request.exemptionsApplied || []).length > 0 && (
                         <div className="text-sm">
                           <strong className="text-gray-900">Exemptions:</strong>
                           <div className="mt-1 space-y-1">
-                            {request.exemptionsApplied.map((exemption, index) => (
+                            {(request.exemptionsApplied || []).map((exemption, index) => (
                               <span key={index} className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded mr-1">
-                                {exemption}
+                                {exemption || ''}
                               </span>
                             ))}
                           </div>
@@ -468,17 +468,17 @@ export default function FOILPage() {
                 </div>
 
                 {/* Status Notes */}
-                {request.responseNotes && (
+                {(request.responseNotes || '') && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <h5 className="text-sm font-semibold text-gray-900 mb-2">Status Notes</h5>
-                    <p className="text-sm text-gray-600">{request.responseNotes}</p>
+                    <p className="text-sm text-gray-600">{request.responseNotes || ''}</p>
                   </div>
                 )}
 
-                {request.denialReason && (
+                {(request.denialReason || '') && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
                     <h5 className="text-sm font-semibold text-red-900 mb-2">Denial Reason</h5>
-                    <p className="text-sm text-red-700">{request.denialReason}</p>
+                    <p className="text-sm text-red-700">{request.denialReason || ''}</p>
                   </div>
                 )}
 
@@ -493,7 +493,7 @@ export default function FOILPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-gray-600">
-                          Documents provided: {request.documentsProvided}
+                          Documents provided: {request.documentsProvided || 0}
                         </span>
                       </div>
                     </div>

@@ -273,10 +273,10 @@ export default function EventsPage() {
     location: ''
   })
 
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEvents = (events || []).filter(event => {
+    const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (event.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
                          
     const matchesType = typeFilter === 'ALL' || event.type === typeFilter
     const matchesStatus = statusFilter === 'ALL' || event.status === statusFilter
@@ -336,13 +336,13 @@ export default function EventsPage() {
   const handleEdit = (event: any) => {
     setEditingEvent(event)
     setFormData({
-      title: event.title,
-      description: event.description,
-      type: event.type,
-      status: event.status,
-      startDate: event.startDate.split('T')[0], // Convert to date input format
-      endDate: event.endDate.split('T')[0],
-      location: event.location
+      title: event.title || '',
+      description: event.description || '',
+      type: event.type || 'MEETING',
+      status: event.status || 'SCHEDULED',
+      startDate: (event.startDate || '').split('T')[0], // Convert to date input format
+      endDate: (event.endDate || '').split('T')[0],
+      location: event.location || ''
     })
     setShowAddModal(true)
   }
@@ -506,7 +506,7 @@ export default function EventsPage() {
           </h3>
           
           {filteredEvents.map((event) => {
-            const participants = event.participantsList ? JSON.parse(event.participantsList) : []
+            const participants = (event.participantsList || '') ? JSON.parse(event.participantsList || '[]') : []
             return (
               <div key={event.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between">
@@ -517,10 +517,10 @@ export default function EventsPage() {
                         {event.title}
                       </h4>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${eventTypeStyles[event.type as keyof typeof eventTypeStyles]}`}>
-                        {event.type.replace('_', ' ')}
+                        {(event.type || '').replace('_', ' ')}
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[event.status as keyof typeof statusStyles]}`}>
-                        {event.status.replace('_', ' ')}
+                        {(event.status || '').replace('_', ' ')}
                       </span>
                       {event.result && (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${resultStyles[event.result as keyof typeof resultStyles]}`}>

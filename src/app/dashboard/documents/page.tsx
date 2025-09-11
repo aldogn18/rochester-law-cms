@@ -302,16 +302,16 @@ export default function DocumentsPage() {
     isTemplate: false
   })
 
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDocuments = (documents || []).filter(doc => {
+    const matchesSearch = (doc.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (doc.fileName || '').toLowerCase().includes(searchTerm.toLowerCase())
                          
-    const matchesCategory = categoryFilter === 'ALL' || doc.category === categoryFilter
-    const matchesApproval = approvalFilter === 'ALL' || doc.status === approvalFilter
-    const matchesConfidentiality = confidentialityFilter === 'ALL' || doc.confidentialityLevel === confidentialityFilter
+    const matchesCategory = categoryFilter === 'ALL' || (doc.category || '') === categoryFilter
+    const matchesApproval = approvalFilter === 'ALL' || (doc.status || '') === approvalFilter
+    const matchesConfidentiality = confidentialityFilter === 'ALL' || (doc.confidentialityLevel || '') === confidentialityFilter
     
     if (viewMode === 'TEMPLATES') {
-      return matchesSearch && matchesCategory && matchesApproval && matchesConfidentiality && doc.isTemplate
+      return matchesSearch && matchesCategory && matchesApproval && matchesConfidentiality && (doc.isTemplate || false)
     }
     
     return matchesSearch && matchesCategory && matchesApproval && matchesConfidentiality
@@ -459,7 +459,7 @@ export default function DocumentsPage() {
               <FileText className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Documents</p>
-                <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(documents || []).length}</p>
               </div>
             </div>
           </div>
@@ -469,7 +469,7 @@ export default function DocumentsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Templates</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {documents.filter(d => d.isTemplate).length}
+                  {(documents || []).filter(d => d.isTemplate).length}
                 </p>
               </div>
             </div>
@@ -480,7 +480,7 @@ export default function DocumentsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Under Review</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {documents.filter(d => d.status === 'UNDER_REVIEW').length}
+                  {(documents || []).filter(d => d.status === 'UNDER_REVIEW').length}
                 </p>
               </div>
             </div>
@@ -491,7 +491,7 @@ export default function DocumentsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Confidential</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {documents.filter(d => d.confidentialityLevel !== 'PUBLIC').length}
+                  {(documents || []).filter(d => d.confidentialityLevel !== 'PUBLIC').length}
                 </p>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function DocumentsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Versioned</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {documents.filter(d => d.fileSize > 1000000).length}
+                  {(documents || []).filter(d => d.fileSize > 1000000).length}
                 </p>
               </div>
             </div>
@@ -516,8 +516,8 @@ export default function DocumentsPage() {
           </h3>
           
           {filteredDocuments.map((doc) => {
-            const ApprovalIcon = getApprovalIcon(doc.approvalStatus)
-            const templateFields = doc.templateFields ? JSON.parse(doc.templateFields) : null
+            const ApprovalIcon = getApprovalIcon(doc.approvalStatus || '')
+            const templateFields = (doc.templateFields || '') ? JSON.parse(doc.templateFields || '{}') : null
             
             return (
               <div key={doc.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
@@ -537,14 +537,14 @@ export default function DocumentsPage() {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-lg font-medium text-gray-900">
-                            {doc.title}
+                            {doc.title || ''}
                           </h4>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryStyles[doc.category as keyof typeof categoryStyles]}`}>
                             {doc.category}
                           </span>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${approvalStatusStyles[doc.approvalStatus as keyof typeof approvalStatusStyles]}`}>
                             <ApprovalIcon className="h-3 w-3 mr-1" />
-                            {doc.approvalStatus.replace('_', ' ')}
+                            {(doc.approvalStatus || '').replace('_', ' ')}
                           </span>
                           {doc.confidentialityLevel !== 'BASIC' && (
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${confidentialityStyles[doc.confidentialityLevel as keyof typeof confidentialityStyles]}`}>
@@ -559,9 +559,9 @@ export default function DocumentsPage() {
                             </span>
                           )}
                         </div>
-                        {doc.description && (
+                        {(doc.description || '') && (
                           <p className="text-gray-600 mb-2">
-                            {doc.description}
+                            {doc.description || ''}
                           </p>
                         )}
                       </div>
@@ -589,20 +589,20 @@ export default function DocumentsPage() {
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">File Details</h5>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <div>Name: {doc.fileName}</div>
-                          <div>Size: {formatFileSize(doc.fileSize)}</div>
-                          <div>Version: {doc.version}</div>
-                          <div>Type: {doc.mimeType.split('/')[1].toUpperCase()}</div>
+                          <div>Name: {doc.fileName || ''}</div>
+                          <div>Size: {formatFileSize(doc.fileSize || 0)}</div>
+                          <div>Version: {doc.version || ''}</div>
+                          <div>Type: {(doc.mimeType || '').split('/')[1]?.toUpperCase() || ''}</div>
                         </div>
                       </div>
 
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">Case Association</h5>
                         <div className="text-sm text-gray-600 space-y-1">
-                          {doc.caseNumber ? (
+                          {(doc.caseNumber || '') ? (
                             <>
-                              <div>Case: {doc.caseNumber}</div>
-                              <div className="text-xs">{doc.caseTitle}</div>
+                              <div>Case: {doc.caseNumber || ''}</div>
+                              <div className="text-xs">{doc.caseTitle || ''}</div>
                             </>
                           ) : (
                             <div>Not linked to case</div>
@@ -613,18 +613,18 @@ export default function DocumentsPage() {
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">Access & Usage</h5>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <div>Access Count: {doc.accessCount}</div>
-                          <div>Last Accessed: {new Date(doc.lastAccessed).toLocaleDateString()}</div>
-                          <div>Created by: {doc.createdBy}</div>
+                          <div>Access Count: {doc.accessCount || 0}</div>
+                          <div>Last Accessed: {doc.lastAccessed ? new Date(doc.lastAccessed).toLocaleDateString() : 'Never'}</div>
+                          <div>Created by: {doc.createdBy || ''}</div>
                         </div>
                       </div>
 
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">Dates</h5>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <div>Created: {new Date(doc.createdAt).toLocaleDateString()}</div>
-                          <div>Modified: {new Date(doc.updatedAt).toLocaleDateString()}</div>
-                          {doc.approvedAt && (
+                          <div>Created: {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : ''}</div>
+                          <div>Modified: {doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString() : ''}</div>
+                          {(doc.approvedAt || '') && (
                             <div>Approved: {new Date(doc.approvedAt).toLocaleDateString()}</div>
                           )}
                         </div>
@@ -634,7 +634,7 @@ export default function DocumentsPage() {
                     {/* Tags */}
                     <div className="mb-4">
                       <div className="flex flex-wrap gap-1">
-                        {doc.tags.map((tag, index) => (
+                        {(doc.tags || []).map((tag, index) => (
                           <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                             {tag}
                           </span>
@@ -643,14 +643,14 @@ export default function DocumentsPage() {
                     </div>
 
                     {/* Review Status */}
-                    {doc.reviews.length > 0 && (
+                    {(doc.reviews || []).length > 0 && (
                       <div className="border-t pt-4">
                         <h5 className="font-medium text-gray-900 mb-2 flex items-center">
                           <Workflow className="h-4 w-4 mr-2" />
                           Review Status
                         </h5>
                         <div className="space-y-2">
-                          {doc.reviews.map((review, index) => (
+                          {(doc.reviews || []).map((review, index) => (
                             <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                               <div className="flex items-center space-x-3">
                                 <span className="text-sm font-medium">{review.reviewer}</span>
@@ -660,7 +660,7 @@ export default function DocumentsPage() {
                                   review.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {review.status.replace('_', ' ')}
+                                  {(review.status || '').replace('_', ' ')}
                                 </span>
                               </div>
                               <div className="text-sm text-gray-500">
