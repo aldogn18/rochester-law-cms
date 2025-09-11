@@ -334,6 +334,54 @@ export default function DocumentsPage() {
       default: return File
     }
   }
+  
+  // Form handlers
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (editingDoc) {
+      updateDocument(editingDoc.id, formData)
+      setEditingDoc(null)
+    } else {
+      addDocument(formData)
+    }
+    
+    // Reset form
+    setFormData({
+      title: '',
+      fileName: '',
+      category: 'CONTRACT',
+      status: 'DRAFT',
+      confidentialityLevel: 'INTERNAL',
+      uploadedBy: session?.user?.name || 'Unknown',
+      uploadedAt: new Date().toISOString(),
+      fileSize: 0,
+      isTemplate: false
+    })
+    setShowAddModal(false)
+  }
+
+  const handleEdit = (doc: any) => {
+    setEditingDoc(doc)
+    setFormData({
+      title: doc.title || '',
+      fileName: doc.fileName || '',
+      category: doc.category || 'CONTRACT',
+      status: doc.status || 'DRAFT',
+      confidentialityLevel: doc.confidentialityLevel || 'INTERNAL',
+      uploadedBy: doc.uploadedBy || session?.user?.name || 'Unknown',
+      uploadedAt: doc.uploadedAt || new Date().toISOString(),
+      fileSize: doc.fileSize || 0,
+      isTemplate: doc.isTemplate || false
+    })
+    setShowAddModal(true)
+  }
+
+  const handleDelete = (docId: string) => {
+    if (confirm('Are you sure you want to delete this document?')) {
+      deleteDocument(docId)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -354,11 +402,23 @@ export default function DocumentsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => {
+                  setFormData({...formData, isTemplate: true})
+                  setShowAddModal(true)
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <BookTemplate className="w-4 h-4 mr-2" />
                 New Template
               </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => {
+                  setFormData({...formData, isTemplate: false})
+                  setShowAddModal(true)
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Upload Document
               </button>
@@ -694,7 +754,10 @@ export default function DocumentsPage() {
                     <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
                       <Download className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button 
+                      onClick={() => handleEdit(doc)}
+                      className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50"
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
                     {doc.isTemplate && (
@@ -715,6 +778,160 @@ export default function DocumentsPage() {
           })}
         </div>
       </main>
+
+      {/* Add/Edit Document Modal */}
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => {
+          setShowAddModal(false)
+          setEditingDoc(null)
+          setFormData({
+            title: '',
+            fileName: '',
+            category: 'CONTRACT',
+            status: 'DRAFT',
+            confidentialityLevel: 'INTERNAL',
+            uploadedBy: session?.user?.name || 'Unknown',
+            uploadedAt: new Date().toISOString(),
+            fileSize: 0,
+            isTemplate: false
+          })
+        }}
+        title={editingDoc ? 'Edit Document' : (formData.isTemplate ? 'Create New Template' : 'Upload New Document')}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter document title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                File Name
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.fileName}
+                onChange={(e) => setFormData({...formData, fileName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter file name"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="CONTRACT">Contract</option>
+                <option value="MOTION">Motion</option>
+                <option value="BRIEF">Brief</option>
+                <option value="CORRESPONDENCE">Correspondence</option>
+                <option value="DISCOVERY">Discovery</option>
+                <option value="RESEARCH">Research</option>
+                <option value="TEMPLATE">Template</option>
+                <option value="REPORT">Report</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="DRAFT">Draft</option>
+                <option value="UNDER_REVIEW">Under Review</option>
+                <option value="APPROVED">Approved</option>
+                <option value="ACTIVE">Active</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confidentiality Level
+              </label>
+              <select
+                value={formData.confidentialityLevel}
+                onChange={(e) => setFormData({...formData, confidentialityLevel: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="PUBLIC">Public</option>
+                <option value="INTERNAL">Internal</option>
+                <option value="CONFIDENTIAL">Confidential</option>
+                <option value="SECRET">Secret</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                File Size (bytes)
+              </label>
+              <input
+                type="number"
+                value={formData.fileSize}
+                onChange={(e) => setFormData({...formData, fileSize: parseInt(e.target.value) || 0})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter file size"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isTemplate}
+                onChange={(e) => setFormData({...formData, isTemplate: e.target.checked})}
+                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">This is a template document</span>
+            </label>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false)
+                setEditingDoc(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingDoc ? 'Update Document' : (formData.isTemplate ? 'Create Template' : 'Upload Document')}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

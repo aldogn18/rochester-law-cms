@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useDemoStore } from '@/lib/demo-store'
+import { Modal } from '@/components/ui/modal'
 import { 
   Users, 
   Search, 
@@ -153,11 +154,26 @@ const securityLevelStyles = {
 
 export default function PersonsPage() {
   const { data: session } = useSession()
+  const { persons, addPerson, updatePerson, deletePerson } = useDemoStore()
+  
+  // UI state
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [securityFilter, setSecurityFilter] = useState('ALL')
-
-  const { persons } = useDemoStore()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingPerson, setEditingPerson] = useState<any>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    organization: '',
+    role: 'CLIENT',
+    address: '',
+    notes: ''
+  })
   const filteredPersons = (persons || []).filter(person => {
     const fullName = `${(person.firstName || '')} ${(person.lastName || '')}`.toLowerCase()
     
@@ -170,6 +186,52 @@ export default function PersonsPage() {
     
     return matchesSearch && matchesType && matchesSecurity
   })
+  
+  // Form handlers
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (editingPerson) {
+      updatePerson(editingPerson.id, formData)
+      setEditingPerson(null)
+    } else {
+      addPerson(formData)
+    }
+    
+    // Reset form
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      organization: '',
+      role: 'CLIENT',
+      address: '',
+      notes: ''
+    })
+    setShowAddModal(false)
+  }
+
+  const handleEdit = (person: any) => {
+    setEditingPerson(person)
+    setFormData({
+      firstName: person.firstName || '',
+      lastName: person.lastName || '',
+      email: person.email || '',
+      phone: person.phone || '',
+      organization: person.organization || '',
+      role: person.role || 'CLIENT',
+      address: person.address || '',
+      notes: person.notes || ''
+    })
+    setShowAddModal(true)
+  }
+
+  const handleDelete = (personId: string) => {
+    if (confirm('Are you sure you want to delete this person?')) {
+      deletePerson(personId)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -190,7 +252,10 @@ export default function PersonsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Person/Entity
               </button>
@@ -389,7 +454,10 @@ export default function PersonsPage() {
                       <button className="text-blue-600 hover:text-blue-900">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900">
+                      <button 
+                        onClick={() => handleEdit(person)}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
                     </div>
@@ -400,6 +468,164 @@ export default function PersonsPage() {
           </div>
         </div>
       </main>
+
+      {/* Add/Edit Person Modal */}
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => {
+          setShowAddModal(false)
+          setEditingPerson(null)
+          setFormData({
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            organization: '',
+            role: 'CLIENT',
+            address: '',
+            notes: ''
+          })
+        }}
+        title={editingPerson ? 'Edit Person/Entity' : 'Add New Person/Entity'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First Name
+              </label>
+              <input
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter first name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter last name"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter email address"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter phone number"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Organization
+              </label>
+              <input
+                type="text"
+                value={formData.organization}
+                onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter organization"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Role
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="CLIENT">Client</option>
+                <option value="WITNESS">Witness</option>
+                <option value="OPPOSING_PARTY">Opposing Party</option>
+                <option value="OPPOSING_COUNSEL">Opposing Counsel</option>
+                <option value="EXPERT_WITNESS">Expert Witness</option>
+                <option value="VENDOR">Vendor</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Address
+            </label>
+            <input
+              type="text"
+              value={formData.address}
+              onChange={(e) => setFormData({...formData, address: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter any additional notes"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false)
+                setEditingPerson(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingPerson ? 'Update Person' : 'Add Person'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

@@ -3,6 +3,8 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useDemoStore } from '@/lib/demo-store'
+import { Modal } from '@/components/ui/modal'
 import { 
   Calendar, 
   Search, 
@@ -148,12 +150,28 @@ const priorityStyles = {
 
 export default function TasksPage() {
   const { data: session } = useSession()
+  const { tasks, addTask, updateTask, deleteTask } = useDemoStore()
+  
+  // UI state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [assigneeFilter, setAssigneeFilter] = useState('ALL')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<any>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'PENDING',
+    priority: 'MEDIUM',
+    assignedTo: '',
+    dueDate: new Date().toISOString().split('T')[0],
+    caseId: ''
+  })
 
-  const filteredTasks = mockTasks.filter(task => {
+  const filteredTasks = (tasks || []).filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
@@ -175,7 +193,51 @@ export default function TasksPage() {
     return status !== 'COMPLETED' && status !== 'CANCELLED' && getDaysRemaining(dueDate) < 0
   }
 
-  const uniqueAssignees = Array.from(new Set(mockTasks.map(task => task.assignedTo)))
+  const uniqueAssignees = Array.from(new Set((tasks || []).map(task => task.assignedTo || 'Unassigned')))
+  
+  // Form handlers
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (editingTask) {
+      updateTask(editingTask.id, formData)
+      setEditingTask(null)
+    } else {
+      addTask(formData)
+    }
+    
+    // Reset form
+    setFormData({
+      title: '',
+      description: '',
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      assignedTo: '',
+      dueDate: new Date().toISOString().split('T')[0],
+      caseId: ''
+    })
+    setShowAddModal(false)
+  }
+
+  const handleEdit = (task: any) => {
+    setEditingTask(task)
+    setFormData({
+      title: task.title || '',
+      description: task.description || '',
+      status: task.status || 'PENDING',
+      priority: task.priority || 'MEDIUM',
+      assignedTo: task.assignedTo || '',
+      dueDate: task.dueDate ? task.dueDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      caseId: task.caseId || ''
+    })
+    setShowAddModal(true)
+  }
+
+  const handleDelete = (taskId: string) => {
+    if (confirm('Are you sure you want to delete this task?')) {
+      deleteTask(taskId)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -196,7 +258,10 @@ export default function TasksPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New Task
               </button>
@@ -262,7 +327,7 @@ export default function TasksPage() {
               <Calendar className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{mockTasks.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(tasks || []).length}</p>
               </div>
             </div>
           </div>
@@ -272,7 +337,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockTasks.filter(t => t.status === 'IN_PROGRESS').length}
+                  {(tasks || []).filter(t => t.status === 'IN_PROGRESS').length}
                 </p>
               </div>
             </div>
@@ -283,7 +348,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockTasks.filter(t => isOverdue(t.dueDate, t.status)).length}
+                  {(tasks || []).filter(t => isOverdue(t.dueDate, t.status)).length}
                 </p>
               </div>
             </div>
@@ -294,7 +359,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockTasks.filter(t => t.status === 'COMPLETED').length}
+                  {(tasks || []).filter(t => t.status === 'COMPLETED').length}
                 </p>
               </div>
             </div>
@@ -346,7 +411,7 @@ export default function TasksPage() {
                     )}
 
                     <div className="flex flex-wrap gap-1 mb-3">
-                      {task.tags.map((tag, index) => (
+                      {(task.tags || []).map((tag, index) => (
                         <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                           {tag}
                         </span>
@@ -444,6 +509,150 @@ export default function TasksPage() {
           ))}
         </div>
       </main>
+
+      {/* Add/Edit Task Modal */}
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => {
+          setShowAddModal(false)
+          setEditingTask(null)
+          setFormData({
+            title: '',
+            description: '',
+            status: 'PENDING',
+            priority: 'MEDIUM',
+            assignedTo: '',
+            dueDate: new Date().toISOString().split('T')[0],
+            caseId: ''
+          })
+        }}
+        title={editingTask ? 'Edit Task' : 'Create New Task'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter task title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+              placeholder="Enter task description"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+              >
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ON_HOLD">On Hold</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assigned To
+              </label>
+              <input
+                type="text"
+                value={formData.assignedTo}
+                onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter assignee name"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date
+              </label>
+              <input
+                type="date"
+                required
+                value={formData.dueDate}
+                onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Case ID (optional)
+              </label>
+              <input
+                type="text"
+                value={formData.caseId}
+                onChange={(e) => setFormData({...formData, caseId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter case ID"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false)
+                setEditingTask(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+            >
+              {editingTask ? 'Update Task' : 'Create Task'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

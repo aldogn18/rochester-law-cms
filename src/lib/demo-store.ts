@@ -91,6 +91,26 @@ export interface DemoPerson {
   notes?: string
 }
 
+export interface DemoNote {
+  id: string
+  title: string
+  content: string
+  type: string
+  priority: string
+  isPrivate: boolean
+  isConfidential: boolean
+  tags: string[]
+  caseId?: string
+  caseNumber?: string
+  caseTitle?: string
+  personId?: string
+  personName?: string
+  authorId: string
+  authorName: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface DemoNotification {
   id: string
   title: string
@@ -110,6 +130,7 @@ interface DemoStore {
   tasks: DemoTask[]
   foilRequests: DemoFoilRequest[]
   persons: DemoPerson[]
+  notes: DemoNote[]
   notifications: DemoNotification[]
   
   // UI state
@@ -140,6 +161,10 @@ interface DemoStore {
   addPerson: (person: Omit<DemoPerson, 'id'>) => void
   updatePerson: (id: string, person: Partial<DemoPerson>) => void
   deletePerson: (id: string) => void
+  
+  addNote: (note: Omit<DemoNote, 'id'>) => void
+  updateNote: (id: string, note: Partial<DemoNote>) => void
+  deleteNote: (id: string) => void
   
   addNotification: (notification: Omit<DemoNotification, 'id'>) => void
   updateNotification: (id: string, notification: Partial<DemoNotification>) => void
@@ -322,6 +347,43 @@ const initialPersons: DemoPerson[] = [
   }
 ]
 
+const initialNotes: DemoNote[] = [
+  {
+    id: 'note-001',
+    title: 'Client Meeting - Downtown Development',
+    content: 'Met with Planning Department regarding the downtown development case. Key points discussed: zoning concerns, environmental impact study requirements, and potential mediation timeline. Next steps: Review environmental reports by Friday.',
+    type: 'MEETING',
+    priority: 'HIGH',
+    isPrivate: false,
+    isConfidential: false,
+    tags: ['zoning', 'environment', 'mediation'],
+    caseId: 'case-001',
+    caseNumber: 'CASE-2025-001',
+    caseTitle: 'City Planning Dispute - Downtown Development',
+    authorId: 'user-001',
+    authorName: 'Michael Chen',
+    createdAt: '2025-01-15T14:30:00Z',
+    updatedAt: '2025-01-15T14:30:00Z'
+  },
+  {
+    id: 'note-002',
+    title: 'Research Notes - Employment Law Updates',
+    content: 'Recent changes to NY employment law affecting municipal workers. Key provisions: overtime calculations for department heads, new harassment reporting procedures, updated disciplinary processes. Need to brief all department heads.',
+    type: 'RESEARCH',
+    priority: 'MEDIUM',
+    isPrivate: true,
+    isConfidential: false,
+    tags: ['employment', 'policy', 'compliance'],
+    caseId: 'case-002',
+    caseNumber: 'CASE-2025-002',
+    caseTitle: 'Employment Contract Review - Department Heads',
+    authorId: 'user-002',
+    authorName: 'Sarah Rodriguez',
+    createdAt: '2025-01-14T16:45:00Z',
+    updatedAt: '2025-01-14T16:45:00Z'
+  }
+]
+
 const initialNotifications: DemoNotification[] = [
   {
     id: 'notif-001',
@@ -405,6 +467,7 @@ export const useDemoStore = create<DemoStore>()(
       tasks: initialTasks,
       foilRequests: initialFoilRequests,
       persons: initialPersons,
+      notes: initialNotes,
       notifications: initialNotifications,
       
       // UI state
@@ -519,6 +582,24 @@ export const useDemoStore = create<DemoStore>()(
         showSuccessMessage: 'Person deleted successfully!'
       })),
       
+      // Note actions
+      addNote: (noteData) => set((state) => ({
+        notes: [...state.notes, { ...noteData, id: generateId() }],
+        showSuccessMessage: 'Note created successfully!'
+      })),
+      
+      updateNote: (id, noteData) => set((state) => ({
+        notes: state.notes.map(note => 
+          note.id === id ? { ...note, ...noteData } : note
+        ),
+        showSuccessMessage: 'Note updated successfully!'
+      })),
+      
+      deleteNote: (id) => set((state) => ({
+        notes: state.notes.filter(note => note.id !== id),
+        showSuccessMessage: 'Note deleted successfully!'
+      })),
+      
       // Notification actions
       addNotification: (notifData) => set((state) => ({
         notifications: [...state.notifications, { ...notifData, id: generateId() }],
@@ -549,6 +630,7 @@ export const useDemoStore = create<DemoStore>()(
         tasks: initialTasks,
         foilRequests: initialFoilRequests,
         persons: initialPersons,
+        notes: initialNotes,
         notifications: initialNotifications,
         showSuccessMessage: 'Demo data reset successfully!'
       })
@@ -562,6 +644,7 @@ export const useDemoStore = create<DemoStore>()(
         tasks: state.tasks,
         foilRequests: state.foilRequests,
         persons: state.persons,
+        notes: state.notes,
         notifications: state.notifications
       })
     }

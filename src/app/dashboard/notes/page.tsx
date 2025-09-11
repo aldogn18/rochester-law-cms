@@ -3,6 +3,8 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useDemoStore } from '@/lib/demo-store'
+import { Modal } from '@/components/ui/modal'
 import { 
   StickyNote, 
   Search, 
@@ -151,13 +153,38 @@ const noteTypeIcons = {
 
 export default function NotesPage() {
   const { data: session } = useSession()
+  const { notes, addNote, updateNote, deleteNote } = useDemoStore()
+  
+  // UI state
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [dateFilter, setDateFilter] = useState('ALL')
   const [authorFilter, setAuthorFilter] = useState('ALL')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingNote, setEditingNote] = useState<any>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    type: 'GENERAL',
+    priority: 'MEDIUM',
+    isPrivate: false,
+    isConfidential: false,
+    tags: '',
+    caseId: '',
+    caseNumber: '',
+    caseTitle: '',
+    personId: '',
+    personName: '',
+    authorId: session?.user?.id || 'user-001',
+    authorName: session?.user?.name || 'Current User',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  })
 
-  const filteredNotes = mockNotes.filter(note => {
+  const filteredNotes = (notes || []).filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -182,11 +209,79 @@ export default function NotesPage() {
     return matchesSearch && matchesType && matchesPriority && matchesAuthor && matchesDate
   })
 
-  const uniqueAuthors = [...new Set(mockNotes.map(note => note.authorName))]
+  const uniqueAuthors = [...new Set((notes || []).map(note => note.authorName))]
 
   const getIcon = (type: string) => {
     const IconComponent = noteTypeIcons[type as keyof typeof noteTypeIcons] || MessageSquare
     return IconComponent
+  }
+  
+  // Form handlers
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const noteData = {
+      ...formData,
+      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+      updatedAt: new Date().toISOString()
+    }
+    
+    if (editingNote) {
+      updateNote(editingNote.id, noteData)
+      setEditingNote(null)
+    } else {
+      addNote(noteData)
+    }
+    
+    // Reset form
+    setFormData({
+      title: '',
+      content: '',
+      type: 'GENERAL',
+      priority: 'MEDIUM',
+      isPrivate: false,
+      isConfidential: false,
+      tags: '',
+      caseId: '',
+      caseNumber: '',
+      caseTitle: '',
+      personId: '',
+      personName: '',
+      authorId: session?.user?.id || 'user-001',
+      authorName: session?.user?.name || 'Current User',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    setShowAddModal(false)
+  }
+
+  const handleEdit = (note: any) => {
+    setEditingNote(note)
+    setFormData({
+      title: note.title || '',
+      content: note.content || '',
+      type: note.type || 'GENERAL',
+      priority: note.priority || 'MEDIUM',
+      isPrivate: note.isPrivate || false,
+      isConfidential: note.isConfidential || false,
+      tags: (note.tags || []).join(', '),
+      caseId: note.caseId || '',
+      caseNumber: note.caseNumber || '',
+      caseTitle: note.caseTitle || '',
+      personId: note.personId || '',
+      personName: note.personName || '',
+      authorId: note.authorId || session?.user?.id || 'user-001',
+      authorName: note.authorName || session?.user?.name || 'Current User',
+      createdAt: note.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    setShowAddModal(true)
+  }
+
+  const handleDelete = (noteId: string) => {
+    if (confirm('Are you sure you want to delete this note?')) {
+      deleteNote(noteId)
+    }
   }
 
   return (
@@ -208,7 +303,10 @@ export default function NotesPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Note
               </button>
@@ -290,7 +388,7 @@ export default function NotesPage() {
               <StickyNote className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Notes</p>
-                <p className="text-2xl font-bold text-gray-900">{mockNotes.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(notes || []).length}</p>
               </div>
             </div>
           </div>
@@ -300,7 +398,7 @@ export default function NotesPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Today</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockNotes.filter(n => new Date(n.createdAt).toDateString() === new Date().toDateString()).length}
+                  {(notes || []).filter(n => new Date(n.createdAt).toDateString() === new Date().toDateString()).length}
                 </p>
               </div>
             </div>
@@ -311,7 +409,7 @@ export default function NotesPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Confidential</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockNotes.filter(n => n.isConfidential).length}
+                  {(notes || []).filter(n => n.isConfidential).length}
                 </p>
               </div>
             </div>
@@ -322,7 +420,7 @@ export default function NotesPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Private</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockNotes.filter(n => n.isPrivate).length}
+                  {(notes || []).filter(n => n.isPrivate).length}
                 </p>
               </div>
             </div>
@@ -418,10 +516,16 @@ export default function NotesPage() {
                           <button className="text-blue-600 hover:text-blue-900">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="text-gray-600 hover:text-gray-900">
+                          <button 
+                            onClick={() => handleEdit(note)}
+                            className="text-gray-600 hover:text-gray-900"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button className="text-red-600 hover:text-red-900">
+                          <button 
+                            onClick={() => handleDelete(note.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -434,6 +538,187 @@ export default function NotesPage() {
           })}
         </div>
       </main>
+
+      {/* Add/Edit Note Modal */}
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => {
+          setShowAddModal(false)
+          setEditingNote(null)
+          setFormData({
+            title: '',
+            content: '',
+            type: 'GENERAL',
+            priority: 'MEDIUM',
+            isPrivate: false,
+            isConfidential: false,
+            tags: '',
+            caseId: '',
+            caseNumber: '',
+            caseTitle: '',
+            personId: '',
+            personName: '',
+            authorId: session?.user?.id || 'user-001',
+            authorName: session?.user?.name || 'Current User',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+        }}
+        title={editingNote ? 'Edit Note' : 'Create New Note'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter note title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Note Type
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="GENERAL">General</option>
+                <option value="MEETING">Meeting</option>
+                <option value="PHONE_CALL">Phone Call</option>
+                <option value="RESEARCH">Research</option>
+                <option value="STRATEGY">Strategy</option>
+                <option value="DISCOVERY">Discovery</option>
+                <option value="COURT_FILING">Court Filing</option>
+                <option value="CLIENT_COMMUNICATION">Client Communication</option>
+                <option value="INTERNAL">Internal</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Content
+            </label>
+            <textarea
+              value={formData.content}
+              onChange={(e) => setFormData({...formData, content: e.target.value})}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter note content"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={formData.tags}
+                onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter tags separated by commas"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Case Number (optional)
+              </label>
+              <input
+                type="text"
+                value={formData.caseNumber}
+                onChange={(e) => setFormData({...formData, caseNumber: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter case number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Person Name (optional)
+              </label>
+              <input
+                type="text"
+                value={formData.personName}
+                onChange={(e) => setFormData({...formData, personName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter person name"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isPrivate}
+                onChange={(e) => setFormData({...formData, isPrivate: e.target.checked})}
+                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Private Note</span>
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isConfidential}
+                onChange={(e) => setFormData({...formData, isConfidential: e.target.checked})}
+                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Confidential</span>
+            </label>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false)
+                setEditingNote(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingNote ? 'Update Note' : 'Create Note'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
