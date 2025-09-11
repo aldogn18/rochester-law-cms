@@ -185,6 +185,22 @@ export default function FOILPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [urgencyFilter, setUrgencyFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingRequest, setEditingRequest] = useState<any>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    requestNumber: '',
+    title: '',
+    description: '',
+    requestedBy: '',
+    requestedByEmail: '',
+    status: 'RECEIVED',
+    priority: 'MEDIUM',
+    dueDate: '',
+    assignedTo: '',
+    createdAt: '',
+    category: ''
+  })
 
   const filteredRequests = (foilRequests || []).filter(req => {
     const matchesSearch = (req.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -209,6 +225,69 @@ export default function FOILPage() {
     return status !== 'COMPLETED' && status !== 'DENIED' && getDaysRemaining(dueDate) < 0
   }
 
+  const resetForm = () => {
+    setFormData({
+      requestNumber: '',
+      title: '',
+      description: '',
+      requestedBy: '',
+      requestedByEmail: '',
+      status: 'RECEIVED',
+      priority: 'MEDIUM',
+      dueDate: '',
+      assignedTo: '',
+      createdAt: '',
+      category: ''
+    })
+    setEditingRequest(null)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const now = new Date()
+    const dueDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
+    
+    const requestData = {
+      ...formData,
+      requestNumber: formData.requestNumber || `FOIL-${now.getFullYear()}-${String((foilRequests || []).length + 1).padStart(3, '0')}`,
+      createdAt: now.toISOString().split('T')[0],
+      dueDate: formData.dueDate || dueDate.toISOString().split('T')[0]
+    }
+
+    if (editingRequest) {
+      updateFoilRequest(editingRequest.id, requestData)
+    } else {
+      addFoilRequest(requestData)
+    }
+
+    resetForm()
+    setShowAddModal(false)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleEdit = (request: any) => {
+    setFormData({
+      requestNumber: request.requestNumber || '',
+      title: request.title || '',
+      description: request.description || '',
+      requestedBy: request.requestedBy || '',
+      requestedByEmail: request.requestedByEmail || '',
+      status: request.status || 'RECEIVED',
+      priority: request.priority || 'MEDIUM',
+      dueDate: request.dueDate || '',
+      assignedTo: request.assignedTo || '',
+      createdAt: request.createdAt || '',
+      category: request.category || ''
+    })
+    setEditingRequest(request)
+    setShowAddModal(true)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -228,7 +307,10 @@ export default function FOILPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New FOIL Request
               </button>
@@ -361,7 +443,10 @@ export default function FOILPage() {
                       <button className="text-purple-600 hover:text-purple-800 p-2 rounded-md hover:bg-purple-50">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-800 p-2 rounded-md hover:bg-gray-50">
+                      <button 
+                        onClick={() => handleEdit(request)}
+                        className="text-gray-600 hover:text-gray-800 p-2 rounded-md hover:bg-gray-50"
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
                     </div>
@@ -504,6 +589,199 @@ export default function FOILPage() {
           ))}
         </div>
       </main>
+
+      {/* Add/Edit FOIL Request Modal */}
+      {showAddModal && (
+        <Modal
+          title={editingRequest ? "Edit FOIL Request" : "New FOIL Request"}
+          onClose={() => {
+            setShowAddModal(false)
+            resetForm()
+          }}
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Request Number
+                </label>
+                <input
+                  type="text"
+                  name="requestNumber"
+                  value={formData.requestNumber}
+                  onChange={handleInputChange}
+                  placeholder="Auto-generated if empty"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="">Select Category</option>
+                  <option value="BUDGET">Budget</option>
+                  <option value="PERSONNEL">Personnel</option>
+                  <option value="LEGAL">Legal</option>
+                  <option value="CONTRACTS">Contracts</option>
+                  <option value="ENVIRONMENTAL">Environmental</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Brief description of the request"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+                rows={3}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Detailed description of what information is being requested"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Requester Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="requestedBy"
+                  value={formData.requestedBy}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Requester Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="requestedByEmail"
+                  value={formData.requestedByEmail}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="RECEIVED">Received</option>
+                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="LEGAL_REVIEW">Legal Review</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="DENIED">Denied</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </label>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned To
+                </label>
+                <input
+                  type="text"
+                  name="assignedTo"
+                  value={formData.assignedTo}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Staff member assigned to handle this request"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  name="dueDate"
+                  value={formData.dueDate}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false)
+                  resetForm()
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
+              >
+                {editingRequest ? "Update Request" : "Create Request"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   )
 }

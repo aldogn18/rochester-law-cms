@@ -308,7 +308,10 @@ export default function EDiscoveryPage() {
                 <Package className="w-4 h-4 mr-2" />
                 Create Package
               </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => alert('New Collection functionality - Click detected! This would open a modal to create a new eDiscovery collection.')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New Collection
               </button>

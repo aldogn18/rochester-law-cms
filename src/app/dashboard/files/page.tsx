@@ -253,7 +253,10 @@ export default function PhysicalFilesPage() {
                 <QrCode className="w-4 h-4 mr-2" />
                 Scan File
               </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => alert('New File functionality - Click detected! This would open a modal to create a new physical file entry.')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New File
               </button>

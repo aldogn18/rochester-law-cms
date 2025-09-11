@@ -284,7 +284,10 @@ export default function InterAgencyRequestsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => alert('New Request functionality - Click detected! This would open a modal to create a new legal request.')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New Request
               </button>

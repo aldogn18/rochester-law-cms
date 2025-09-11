@@ -3,6 +3,8 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useDemoStore } from '@/lib/demo-store'
+import { Modal } from '@/components/ui/modal'
 import { 
   Shield, 
   Search, 
@@ -20,107 +22,6 @@ import {
   AlertTriangle
 } from 'lucide-react'
 
-// Mock user data for admin management
-const mockUsers = [
-  {
-    id: 'user-001',
-    name: 'Patricia Williams',
-    email: 'pwilliams@rochester.gov',
-    role: 'ADMIN',
-    department: 'Legal',
-    isActive: true,
-    lastLogin: '2025-01-15T14:30:00Z',
-    createdAt: '2024-06-15T09:00:00Z',
-    permissions: ['ALL_ACCESS', 'USER_MANAGEMENT', 'SYSTEM_CONFIG'],
-    clearanceLevel: 'TOP_SECRET',
-    failedLoginAttempts: 0,
-    mfaEnabled: true
-  },
-  {
-    id: 'user-002',
-    name: 'Michael Chen',
-    email: 'mchen@rochester.gov', 
-    role: 'ATTORNEY',
-    department: 'Legal - Litigation',
-    isActive: true,
-    lastLogin: '2025-01-15T16:45:00Z',
-    createdAt: '2024-03-10T08:30:00Z',
-    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'COURT_FILINGS'],
-    clearanceLevel: 'SECRET',
-    failedLoginAttempts: 0,
-    mfaEnabled: true
-  },
-  {
-    id: 'user-003',
-    name: 'Sarah Rodriguez',
-    email: 'srodriguez@rochester.gov',
-    role: 'ATTORNEY',
-    department: 'Legal - Transactional', 
-    isActive: true,
-    lastLogin: '2025-01-15T11:20:00Z',
-    createdAt: '2024-01-20T10:15:00Z',
-    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'CONTRACT_REVIEW'],
-    clearanceLevel: 'SECRET',
-    failedLoginAttempts: 0,
-    mfaEnabled: true
-  },
-  {
-    id: 'user-004',
-    name: 'David Thompson',
-    email: 'dthompson@rochester.gov',
-    role: 'ATTORNEY', 
-    department: 'Legal - Employment Law',
-    isActive: true,
-    lastLogin: '2025-01-14T17:30:00Z',
-    createdAt: '2024-08-05T11:45:00Z',
-    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'HR_CONSULTATION'],
-    clearanceLevel: 'CONFIDENTIAL',
-    failedLoginAttempts: 1,
-    mfaEnabled: false
-  },
-  {
-    id: 'user-006',
-    name: 'Robert Johnson',
-    email: 'rjohnson@rochester.gov',
-    role: 'PARALEGAL',
-    department: 'Legal - Support',
-    isActive: true,
-    lastLogin: '2025-01-15T15:15:00Z',
-    createdAt: '2023-11-12T09:20:00Z',
-    permissions: ['CASE_SUPPORT', 'DOCUMENT_PREP', 'RESEARCH'],
-    clearanceLevel: 'CONFIDENTIAL',
-    failedLoginAttempts: 0,
-    mfaEnabled: true
-  },
-  {
-    id: 'user-008',
-    name: 'Maria Garcia',
-    email: 'mgarcia@rochester.gov',
-    role: 'USER',
-    department: 'Legal - Administration',
-    isActive: true,
-    lastLogin: '2025-01-15T12:45:00Z',
-    createdAt: '2024-02-28T14:00:00Z',
-    permissions: ['FOIL_REQUESTS', 'ADMIN_TASKS', 'CALENDAR_MGMT'],
-    clearanceLevel: 'PUBLIC',
-    failedLoginAttempts: 0,
-    mfaEnabled: true
-  },
-  {
-    id: 'user-009',
-    name: 'James Wilson', 
-    email: 'jwilson@rochester.gov',
-    role: 'ATTORNEY',
-    department: 'Legal - Environmental',
-    isActive: false,
-    lastLogin: '2024-12-20T10:15:00Z',
-    createdAt: '2024-07-15T09:30:00Z',
-    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS'],
-    clearanceLevel: 'CONFIDENTIAL',
-    failedLoginAttempts: 3,
-    mfaEnabled: false
-  }
-]
 
 const roleStyles = {
   ADMIN: 'bg-red-100 text-red-800',
@@ -153,9 +54,24 @@ const systemStats = {
 
 export default function AdminPage() {
   const { data: session } = useSession()
+  const { users, addUser, updateUser, deleteUser, toggleUserStatus } = useDemoStore()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingUser, setEditingUser] = useState<any>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'USER',
+    department: '',
+    clearanceLevel: 'PUBLIC',
+    permissions: [],
+    mfaEnabled: true
+  })
 
   // Check if user has admin access
   if (session?.user?.role !== 'ADMIN') {
@@ -173,7 +89,7 @@ export default function AdminPage() {
     )
   }
 
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = (users || []).filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.department.toLowerCase().includes(searchTerm.toLowerCase())
@@ -183,6 +99,64 @@ export default function AdminPage() {
     
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      role: 'USER',
+      department: '',
+      clearanceLevel: 'PUBLIC',
+      permissions: [],
+      mfaEnabled: true
+    })
+    setEditingUser(null)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const userData = {
+      ...formData,
+      isActive: true,
+      lastLogin: new Date().toISOString(),
+      createdAt: new Date().toISOString().split('T')[0],
+      failedLoginAttempts: 0
+    }
+
+    if (editingUser) {
+      updateUser(editingUser.id, userData)
+    } else {
+      addUser(userData)
+    }
+
+    resetForm()
+    setShowAddModal(false)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked
+      setFormData(prev => ({ ...prev, [name]: checked }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleEdit = (user: any) => {
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role || 'USER',
+      department: user.department || '',
+      clearanceLevel: user.clearanceLevel || 'PUBLIC',
+      permissions: user.permissions || [],
+      mfaEnabled: user.mfaEnabled !== false
+    })
+    setEditingUser(user)
+    setShowAddModal(true)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -203,7 +177,10 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add User
               </button>
@@ -397,19 +374,31 @@ export default function AdminPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900 p-1 rounded">
+                        <button 
+                          onClick={() => handleEdit(user)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
                         {user.isActive ? (
-                          <button className="text-orange-600 hover:text-orange-900 p-1 rounded">
+                          <button 
+                            onClick={() => toggleUserStatus(user.id)}
+                            className="text-orange-600 hover:text-orange-900 p-1 rounded"
+                          >
                             <UserX className="h-4 w-4" />
                           </button>
                         ) : (
-                          <button className="text-green-600 hover:text-green-900 p-1 rounded">
+                          <button 
+                            onClick={() => toggleUserStatus(user.id)}
+                            className="text-green-600 hover:text-green-900 p-1 rounded"
+                          >
                             <UserCheck className="h-4 w-4" />
                           </button>
                         )}
-                        <button className="text-red-600 hover:text-red-900 p-1 rounded">
+                        <button 
+                          onClick={() => deleteUser(user.id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -453,19 +442,19 @@ export default function AdminPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Users with MFA:</span>
                 <span className="text-gray-900 font-medium">
-                  {mockUsers.filter(u => u.mfaEnabled).length} / {mockUsers.length}
+                  {users.filter(u => u.mfaEnabled).length} / {users.length}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Failed Login Attempts:</span>
                 <span className="text-gray-900 font-medium">
-                  {mockUsers.reduce((sum, u) => sum + u.failedLoginAttempts, 0)}
+                  {users.reduce((sum, u) => sum + u.failedLoginAttempts, 0)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Inactive Users:</span>
                 <span className="text-gray-900 font-medium">
-                  {mockUsers.filter(u => !u.isActive).length}
+                  {users.filter(u => !u.isActive).length}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -476,6 +465,136 @@ export default function AdminPage() {
           </div>
         </div>
       </main>
+
+      {/* Add/Edit User Modal */}
+      {showAddModal && (
+        <Modal
+          title={editingUser ? "Edit User" : "Add New User"}
+          onClose={() => {
+            setShowAddModal(false)
+            resetForm()
+          }}
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Full name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="user@rochester.gov"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                >
+                  <option value="USER">User</option>
+                  <option value="PARALEGAL">Paralegal</option>
+                  <option value="ATTORNEY">Attorney</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Department <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="e.g., Legal - Litigation"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Security Clearance <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="clearanceLevel"
+                value={formData.clearanceLevel}
+                onChange={handleInputChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="PUBLIC">Public</option>
+                <option value="CONFIDENTIAL">Confidential</option>
+                <option value="SECRET">Secret</option>
+                <option value="TOP_SECRET">Top Secret</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="mfaEnabled"
+                  checked={formData.mfaEnabled}
+                  onChange={handleInputChange}
+                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Enable Multi-Factor Authentication</span>
+              </label>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false)
+                  resetForm()
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+              >
+                {editingUser ? "Update User" : "Create User"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   )
 }

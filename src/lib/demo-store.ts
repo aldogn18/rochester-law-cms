@@ -122,6 +122,21 @@ export interface DemoNotification {
   actionRequired: boolean
 }
 
+export interface DemoUser {
+  id: string
+  name: string
+  email: string
+  role: string
+  department: string
+  isActive: boolean
+  lastLogin: string
+  createdAt: string
+  permissions: string[]
+  clearanceLevel: string
+  failedLoginAttempts: number
+  mfaEnabled: boolean
+}
+
 interface DemoStore {
   // Data
   events: DemoEvent[]
@@ -132,6 +147,7 @@ interface DemoStore {
   persons: DemoPerson[]
   notes: DemoNote[]
   notifications: DemoNotification[]
+  users: DemoUser[]
   
   // UI state
   showSuccessMessage: string | null
@@ -169,6 +185,11 @@ interface DemoStore {
   addNotification: (notification: Omit<DemoNotification, 'id'>) => void
   updateNotification: (id: string, notification: Partial<DemoNotification>) => void
   deleteNotification: (id: string) => void
+  
+  addUser: (user: Omit<DemoUser, 'id'>) => void
+  updateUser: (id: string, user: Partial<DemoUser>) => void
+  deleteUser: (id: string) => void
+  toggleUserStatus: (id: string) => void
   
   // Utility actions
   showSuccess: (message: string) => void
@@ -417,6 +438,107 @@ const initialNotifications: DemoNotification[] = [
   }
 ]
 
+const initialUsers: DemoUser[] = [
+  {
+    id: 'user-001',
+    name: 'Patricia Williams',
+    email: 'pwilliams@rochester.gov',
+    role: 'ADMIN',
+    department: 'Legal',
+    isActive: true,
+    lastLogin: '2025-01-15T14:30:00Z',
+    createdAt: '2024-06-15T09:00:00Z',
+    permissions: ['ALL_ACCESS', 'USER_MANAGEMENT', 'SYSTEM_CONFIG'],
+    clearanceLevel: 'TOP_SECRET',
+    failedLoginAttempts: 0,
+    mfaEnabled: true
+  },
+  {
+    id: 'user-002',
+    name: 'Michael Chen',
+    email: 'mchen@rochester.gov', 
+    role: 'ATTORNEY',
+    department: 'Legal - Litigation',
+    isActive: true,
+    lastLogin: '2025-01-15T16:45:00Z',
+    createdAt: '2024-03-10T08:30:00Z',
+    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'COURT_FILINGS'],
+    clearanceLevel: 'SECRET',
+    failedLoginAttempts: 0,
+    mfaEnabled: true
+  },
+  {
+    id: 'user-003',
+    name: 'Sarah Rodriguez',
+    email: 'srodriguez@rochester.gov',
+    role: 'ATTORNEY',
+    department: 'Legal - Transactional', 
+    isActive: true,
+    lastLogin: '2025-01-15T11:20:00Z',
+    createdAt: '2024-01-20T10:15:00Z',
+    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'CONTRACT_REVIEW'],
+    clearanceLevel: 'SECRET',
+    failedLoginAttempts: 0,
+    mfaEnabled: true
+  },
+  {
+    id: 'user-004',
+    name: 'David Thompson',
+    email: 'dthompson@rochester.gov',
+    role: 'ATTORNEY', 
+    department: 'Legal - Employment Law',
+    isActive: true,
+    lastLogin: '2025-01-14T17:30:00Z',
+    createdAt: '2024-08-05T11:45:00Z',
+    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS', 'HR_CONSULTATION'],
+    clearanceLevel: 'CONFIDENTIAL',
+    failedLoginAttempts: 1,
+    mfaEnabled: false
+  },
+  {
+    id: 'user-006',
+    name: 'Robert Johnson',
+    email: 'rjohnson@rochester.gov',
+    role: 'PARALEGAL',
+    department: 'Legal - Support',
+    isActive: true,
+    lastLogin: '2025-01-15T15:15:00Z',
+    createdAt: '2023-11-12T09:20:00Z',
+    permissions: ['CASE_SUPPORT', 'DOCUMENT_PREP', 'RESEARCH'],
+    clearanceLevel: 'CONFIDENTIAL',
+    failedLoginAttempts: 0,
+    mfaEnabled: true
+  },
+  {
+    id: 'user-008',
+    name: 'Maria Garcia',
+    email: 'mgarcia@rochester.gov',
+    role: 'USER',
+    department: 'Legal - Administration',
+    isActive: true,
+    lastLogin: '2025-01-15T12:45:00Z',
+    createdAt: '2024-02-28T14:00:00Z',
+    permissions: ['FOIL_REQUESTS', 'ADMIN_TASKS', 'CALENDAR_MGMT'],
+    clearanceLevel: 'PUBLIC',
+    failedLoginAttempts: 0,
+    mfaEnabled: true
+  },
+  {
+    id: 'user-009',
+    name: 'James Wilson', 
+    email: 'jwilson@rochester.gov',
+    role: 'ATTORNEY',
+    department: 'Legal - Environmental',
+    isActive: false,
+    lastLogin: '2024-12-20T10:15:00Z',
+    createdAt: '2024-07-15T09:30:00Z',
+    permissions: ['CASE_MANAGEMENT', 'DOCUMENT_ACCESS'],
+    clearanceLevel: 'CONFIDENTIAL',
+    failedLoginAttempts: 3,
+    mfaEnabled: false
+  }
+]
+
 const initialDocuments: DemoDocument[] = [
   {
     id: 'doc-001',
@@ -469,6 +591,7 @@ export const useDemoStore = create<DemoStore>()(
       persons: initialPersons,
       notes: initialNotes,
       notifications: initialNotifications,
+      users: initialUsers,
       
       // UI state
       showSuccessMessage: null,
@@ -618,6 +741,31 @@ export const useDemoStore = create<DemoStore>()(
         showSuccessMessage: 'Notification deleted successfully!'
       })),
       
+      // User actions
+      addUser: (userData) => set((state) => ({
+        users: [...state.users, { ...userData, id: generateId() }],
+        showSuccessMessage: 'User created successfully!'
+      })),
+      
+      updateUser: (id, userData) => set((state) => ({
+        users: state.users.map(user => 
+          user.id === id ? { ...user, ...userData } : user
+        ),
+        showSuccessMessage: 'User updated successfully!'
+      })),
+      
+      deleteUser: (id) => set((state) => ({
+        users: state.users.filter(user => user.id !== id),
+        showSuccessMessage: 'User deleted successfully!'
+      })),
+      
+      toggleUserStatus: (id) => set((state) => ({
+        users: state.users.map(user => 
+          user.id === id ? { ...user, isActive: !user.isActive } : user
+        ),
+        showSuccessMessage: 'User status updated successfully!'
+      })),
+      
       // Utility actions
       showSuccess: (message) => set({ showSuccessMessage: message }),
       showError: (message) => set({ showErrorMessage: message }),
@@ -632,6 +780,7 @@ export const useDemoStore = create<DemoStore>()(
         persons: initialPersons,
         notes: initialNotes,
         notifications: initialNotifications,
+        users: initialUsers,
         showSuccessMessage: 'Demo data reset successfully!'
       })
     }),
@@ -645,7 +794,8 @@ export const useDemoStore = create<DemoStore>()(
         foilRequests: state.foilRequests,
         persons: state.persons,
         notes: state.notes,
-        notifications: state.notifications
+        notifications: state.notifications,
+        users: state.users
       })
     }
   )
