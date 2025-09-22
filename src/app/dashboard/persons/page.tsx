@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useDemoStore } from '@/lib/demo-store'
 import { Modal } from '@/components/ui/modal'
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Filter, 
+import {
+  Users,
+  Search,
+  Plus,
+  Filter,
   Building2,
   User,
   Phone,
@@ -21,7 +21,8 @@ import {
   Shield,
   ArrowLeft,
   Calendar,
-  Briefcase
+  Briefcase,
+  XCircle
 } from 'lucide-react'
 
 // Mock person/entity data
@@ -161,7 +162,9 @@ export default function PersonsPage() {
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [securityFilter, setSecurityFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
   const [editingPerson, setEditingPerson] = useState<any>(null)
+  const [viewingPerson, setViewingPerson] = useState<any>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -174,16 +177,19 @@ export default function PersonsPage() {
     address: '',
     notes: ''
   })
-  const filteredPersons = (persons || []).filter(person => {
-    const fullName = `${(person.firstName || '')} ${(person.lastName || '')}`.toLowerCase()
-    
+  // Use mock data for display since the demo store may be empty
+  const displayPersons = mockPersons
+
+  const filteredPersons = displayPersons.filter(person => {
+    const fullName = `${(person.firstName || '')} ${(person.lastName || '')} ${(person.businessName || '')}`.toLowerCase()
+
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         (person.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (person.phone || '').includes(searchTerm)
-                         
-    const matchesType = typeFilter === 'ALL' || person.role === typeFilter
-    const matchesSecurity = securityFilter === 'ALL' || true // Skip security filter for demo
-    
+                         (person.primaryEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (person.primaryPhone || '').includes(searchTerm)
+
+    const matchesType = typeFilter === 'ALL' || person.type === typeFilter
+    const matchesSecurity = securityFilter === 'ALL' || (person.securityLevel || 'BASIC') === securityFilter
+
     return matchesSearch && matchesType && matchesSecurity
   })
   
@@ -225,6 +231,11 @@ export default function PersonsPage() {
       notes: person.notes || ''
     })
     setShowAddModal(true)
+  }
+
+  const handleView = (person: any) => {
+    setViewingPerson(person)
+    setShowViewModal(true)
   }
 
   const handleDelete = (personId: string) => {
@@ -315,7 +326,7 @@ export default function PersonsPage() {
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Persons/Entities</p>
-                <p className="text-2xl font-bold text-gray-900">{(persons || []).length}</p>
+                <p className="text-2xl font-bold text-gray-900">{displayPersons.length}</p>
               </div>
             </div>
           </div>
@@ -325,7 +336,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Individuals</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(persons || []).filter(p => p.role === 'WITNESS').length}
+                  {displayPersons.filter(p => p.type === 'INDIVIDUAL').length}
                 </p>
               </div>
             </div>
@@ -336,7 +347,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Entities</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(persons || []).filter(p => (p.organization || '')).length}
+                  {displayPersons.filter(p => p.type !== 'INDIVIDUAL').length}
                 </p>
               </div>
             </div>
@@ -347,7 +358,7 @@ export default function PersonsPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Confidential</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(persons || []).filter(p => p.role === 'OPPOSING_PARTY').length}
+                  {displayPersons.filter(p => p.isConfidential).length}
                 </p>
               </div>
             </div>
@@ -451,12 +462,17 @@ export default function PersonsPage() {
                     </div>
                     
                     <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
+                      <button
+                        onClick={() => handleView(person)}
+                        className="text-green-600 hover:text-green-900"
+                        title="View Person Details"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleEdit(person)}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit Person"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -625,6 +641,227 @@ export default function PersonsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* View Person Details Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingPerson(null)
+        }}
+        title="Person/Entity Details"
+        size="lg"
+      >
+        {viewingPerson && (
+          <div className="space-y-6">
+            {/* Person Header */}
+            <div className="border-b border-gray-200 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    {viewingPerson.type === 'INDIVIDUAL' ? (
+                      <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="h-8 w-8 text-blue-600" />
+                      </div>
+                    ) : (
+                      <div className="h-16 w-16 bg-purple-100 rounded-full flex items-center justify-center">
+                        <Building2 className="h-8 w-8 text-purple-600" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {viewingPerson.type === 'INDIVIDUAL'
+                        ? `${(viewingPerson.firstName || '')} ${(viewingPerson.middleName || '')} ${(viewingPerson.lastName || '')}`.trim()
+                        : (viewingPerson.businessName || '')
+                      }
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${personTypeStyles[viewingPerson.type as keyof typeof personTypeStyles]}`}>
+                        {(viewingPerson.type || '').replace('_', ' ')}
+                      </span>
+                      {(viewingPerson.securityLevel || 'BASIC') !== 'BASIC' && (
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${securityLevelStyles[(viewingPerson.securityLevel || 'BASIC') as keyof typeof securityLevelStyles]}`}>
+                          <Shield className="h-3 w-3 mr-1" />
+                          {viewingPerson.securityLevel || 'BASIC'}
+                        </span>
+                      )}
+                      {viewingPerson.isConfidential && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Confidential
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">
+                    <div className="font-medium">{viewingPerson.caseCount} cases</div>
+                    <div className="flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      Last activity: {new Date(viewingPerson.lastActivity).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Contact Information
+              </h4>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Email</dt>
+                    <dd className="text-sm text-gray-900 flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                      {viewingPerson.primaryEmail || 'Not provided'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd className="text-sm text-gray-900 flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                      {viewingPerson.primaryPhone || 'Not provided'}
+                    </dd>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Address</dt>
+                    <dd className="text-sm text-gray-900 flex items-center">
+                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                      {(viewingPerson.addresses || [])[0] ? (
+                        <div>
+                          <div>{((viewingPerson.addresses || [])[0].street1 || '')}</div>
+                          <div>
+                            {((viewingPerson.addresses || [])[0].city || '')}, {((viewingPerson.addresses || [])[0].state || '')} {((viewingPerson.addresses || [])[0].zipCode || '')}
+                          </div>
+                        </div>
+                      ) : (
+                        'Not provided'
+                      )}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Professional Information */}
+            {(viewingPerson.occupation || viewingPerson.employer || viewingPerson.barNumber) && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Professional Information
+                </h4>
+                <div className="space-y-3">
+                  {viewingPerson.occupation && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Occupation</dt>
+                      <dd className="text-sm text-gray-900 flex items-center">
+                        <Briefcase className="h-4 w-4 mr-2 text-gray-400" />
+                        {viewingPerson.occupation}
+                      </dd>
+                    </div>
+                  )}
+                  {viewingPerson.employer && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Employer</dt>
+                      <dd className="text-sm text-gray-900">
+                        {viewingPerson.employer}
+                      </dd>
+                    </div>
+                  )}
+                  {viewingPerson.barNumber && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Bar Number</dt>
+                      <dd className="text-sm text-gray-900">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-medium">
+                          {viewingPerson.barNumber}
+                        </span>
+                      </dd>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Case Involvement Roles */}
+            {viewingPerson.involvementRoles && viewingPerson.involvementRoles.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Case Involvement Roles
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingPerson.involvementRoles.map((role: string, index: number) => (
+                    <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {(role || '').replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Status Information */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Status Information
+              </h4>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Status</dt>
+                  <dd className="text-sm text-gray-900">
+                    {viewingPerson.isActive ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Inactive
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Security Level</dt>
+                  <dd className="text-sm text-gray-900">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${securityLevelStyles[(viewingPerson.securityLevel || 'BASIC') as keyof typeof securityLevelStyles]}`}>
+                      {viewingPerson.securityLevel || 'BASIC'}
+                    </span>
+                  </dd>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingPerson(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingPerson)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Edit Person
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
