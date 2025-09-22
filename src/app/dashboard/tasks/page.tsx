@@ -171,13 +171,16 @@ export default function TasksPage() {
     caseId: ''
   })
 
-  const filteredTasks = (tasks || []).filter(task => {
+  // Use mock data for display since the demo store may be empty
+  const [displayTasks, setDisplayTasks] = useState(mockTasks)
+
+  const filteredTasks = displayTasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
     const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter
     const matchesAssignee = assigneeFilter === 'ALL' || task.assignedTo === assigneeFilter
-    
+
     return matchesSearch && matchesStatus && matchesPriority && matchesAssignee
   })
 
@@ -193,7 +196,7 @@ export default function TasksPage() {
     return status !== 'COMPLETED' && status !== 'CANCELLED' && getDaysRemaining(dueDate) < 0
   }
 
-  const uniqueAssignees = Array.from(new Set((tasks || []).map(task => task.assignedTo || 'Unassigned')))
+  const uniqueAssignees = Array.from(new Set(displayTasks.map(task => task.assignedTo || 'Unassigned')))
   
   // Form handlers
   const handleSubmit = (e: React.FormEvent) => {
@@ -231,6 +234,30 @@ export default function TasksPage() {
       caseId: task.caseId || ''
     })
     setShowAddModal(true)
+  }
+
+  const handleStartTask = (taskId: string) => {
+    setDisplayTasks(prev => prev.map(task =>
+      task.id === taskId
+        ? { ...task, status: 'IN_PROGRESS', startDate: new Date().toISOString() }
+        : task
+    ))
+  }
+
+  const handlePauseTask = (taskId: string) => {
+    setDisplayTasks(prev => prev.map(task =>
+      task.id === taskId
+        ? { ...task, status: 'ON_HOLD' }
+        : task
+    ))
+  }
+
+  const handleCompleteTask = (taskId: string) => {
+    setDisplayTasks(prev => prev.map(task =>
+      task.id === taskId
+        ? { ...task, status: 'COMPLETED', completedDate: new Date().toISOString(), progressPercent: 100 }
+        : task
+    ))
   }
 
   const handleDelete = (taskId: string) => {
@@ -327,7 +354,7 @@ export default function TasksPage() {
               <Calendar className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{(tasks || []).length}</p>
+                <p className="text-2xl font-bold text-gray-900">{displayTasks.length}</p>
               </div>
             </div>
           </div>
@@ -337,7 +364,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(tasks || []).filter(t => t.status === 'IN_PROGRESS').length}
+                  {displayTasks.filter(t => t.status === 'IN_PROGRESS').length}
                 </p>
               </div>
             </div>
@@ -348,7 +375,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(tasks || []).filter(t => isOverdue(t.dueDate, t.status)).length}
+                  {displayTasks.filter(t => isOverdue(t.dueDate, t.status)).length}
                 </p>
               </div>
             </div>
@@ -359,7 +386,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(tasks || []).filter(t => t.status === 'COMPLETED').length}
+                  {displayTasks.filter(t => t.status === 'COMPLETED').length}
                 </p>
               </div>
             </div>
@@ -482,23 +509,52 @@ export default function TasksPage() {
                 <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200">
                   <div className="flex space-x-2">
                     {task.status === 'PENDING' && (
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center">
+                      <button
+                        onClick={() => handleStartTask(task.id)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                        title="Start Task"
+                      >
                         <Play className="w-3 h-3 mr-1" />
                         Start
                       </button>
                     )}
                     {task.status === 'IN_PROGRESS' && (
-                      <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center">
+                      <button
+                        onClick={() => handlePauseTask(task.id)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                        title="Pause Task"
+                      >
                         <Pause className="w-3 h-3 mr-1" />
                         Pause
                       </button>
                     )}
+                    {task.status === 'ON_HOLD' && (
+                      <button
+                        onClick={() => handleStartTask(task.id)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                        title="Resume Task"
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        Resume
+                      </button>
+                    )}
                     {task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && (
-                      <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center">
+                      <button
+                        onClick={() => handleCompleteTask(task.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                        title="Mark as Complete"
+                      >
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Complete
                       </button>
                     )}
+                    <button
+                      onClick={() => handleEdit(task)}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                      title="Edit Task"
+                    >
+                      Edit
+                    </button>
                   </div>
                   <div className="text-xs text-gray-500">
                     Last activity: {new Date(task.lastActivity).toLocaleDateString()}
