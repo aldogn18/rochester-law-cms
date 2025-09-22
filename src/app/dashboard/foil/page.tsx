@@ -179,37 +179,46 @@ const requestTypeStyles = {
 
 export default function FOILPage() {
   const { data: session } = useSession()
-  const { foilRequests, addFoilRequest, updateFoilRequest, deleteFoilRequest } = useDemoStore()
-  
+
+  // Use comprehensive mock data as initial state
+  const [foilRequests, setFoilRequests] = useState(mockFOILRequests)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [urgencyFilter, setUrgencyFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingRequest, setEditingRequest] = useState<any>(null)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewingRequest, setViewingRequest] = useState<any>(null)
   
-  // Form state
+  // Form state - updated to match mock data structure
   const [formData, setFormData] = useState({
     requestNumber: '',
-    title: '',
+    subject: '',
     description: '',
-    requestedBy: '',
-    requestedByEmail: '',
-    status: 'RECEIVED',
-    priority: 'MEDIUM',
+    requesterName: '',
+    requesterEmail: '',
+    requesterPhone: '',
+    requesterAddress: '',
+    organization: '',
+    requestType: 'DOCUMENTS',
+    dateRange: '',
+    status: 'IN_PROGRESS',
+    urgency: 'MEDIUM',
     dueDate: '',
     assignedTo: '',
-    createdAt: '',
-    category: ''
+    responseMethod: 'EMAIL',
+    estimatedFee: 0,
+    responseNotes: ''
   })
 
-  const filteredRequests = (foilRequests || []).filter(req => {
-    const matchesSearch = (req.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredRequests = foilRequests.filter(req => {
+    const matchesSearch = (req.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (req.requestNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (req.requestedBy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (req.requesterName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (req.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter
-    const matchesUrgency = urgencyFilter === 'ALL' || req.priority === urgencyFilter
-    
+    const matchesUrgency = urgencyFilter === 'ALL' || req.urgency === urgencyFilter
+
     return matchesSearch && matchesStatus && matchesUrgency
   })
 
@@ -228,37 +237,50 @@ export default function FOILPage() {
   const resetForm = () => {
     setFormData({
       requestNumber: '',
-      title: '',
+      subject: '',
       description: '',
-      requestedBy: '',
-      requestedByEmail: '',
-      status: 'RECEIVED',
-      priority: 'MEDIUM',
+      requesterName: '',
+      requesterEmail: '',
+      requesterPhone: '',
+      requesterAddress: '',
+      organization: '',
+      requestType: 'DOCUMENTS',
+      dateRange: '',
+      status: 'IN_PROGRESS',
+      urgency: 'MEDIUM',
       dueDate: '',
       assignedTo: '',
-      createdAt: '',
-      category: ''
+      responseMethod: 'EMAIL',
+      estimatedFee: 0,
+      responseNotes: ''
     })
     setEditingRequest(null)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const now = new Date()
     const dueDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
-    
+
     const requestData = {
       ...formData,
-      requestNumber: formData.requestNumber || `FOIL-${now.getFullYear()}-${String((foilRequests || []).length + 1).padStart(3, '0')}`,
-      createdAt: now.toISOString().split('T')[0],
-      dueDate: formData.dueDate || dueDate.toISOString().split('T')[0]
+      id: editingRequest ? editingRequest.id : `foil-${Date.now()}`,
+      requestNumber: formData.requestNumber || `FOIL-${now.getFullYear()}-${String(foilRequests.length + 1).padStart(3, '0')}`,
+      receivedAt: now.toISOString(),
+      dueDate: formData.dueDate || dueDate.toISOString().split('T')[0],
+      lastActivity: now.toISOString(),
+      timeSpentHours: 0,
+      documentsProvided: 0,
+      exemptionsApplied: [],
+      redactionsRequired: false,
+      legalReview: false
     }
 
     if (editingRequest) {
-      updateFoilRequest(editingRequest.id, requestData)
+      setFoilRequests(prev => prev.map(req => req.id === editingRequest.id ? requestData : req))
     } else {
-      addFoilRequest(requestData)
+      setFoilRequests(prev => [...prev, requestData])
     }
 
     resetForm()
@@ -273,19 +295,30 @@ export default function FOILPage() {
   const handleEdit = (request: any) => {
     setFormData({
       requestNumber: request.requestNumber || '',
-      title: request.title || '',
+      subject: request.subject || '',
       description: request.description || '',
-      requestedBy: request.requestedBy || '',
-      requestedByEmail: request.requestedByEmail || '',
-      status: request.status || 'RECEIVED',
-      priority: request.priority || 'MEDIUM',
-      dueDate: request.dueDate || '',
+      requesterName: request.requesterName || '',
+      requesterEmail: request.requesterEmail || '',
+      requesterPhone: request.requesterPhone || '',
+      requesterAddress: request.requesterAddress || '',
+      organization: request.organization || '',
+      requestType: request.requestType || 'DOCUMENTS',
+      dateRange: request.dateRange || '',
+      status: request.status || 'IN_PROGRESS',
+      urgency: request.urgency || 'MEDIUM',
+      dueDate: request.dueDate ? request.dueDate.split('T')[0] : '',
       assignedTo: request.assignedTo || '',
-      createdAt: request.createdAt || '',
-      category: request.category || ''
+      responseMethod: request.responseMethod || 'EMAIL',
+      estimatedFee: request.estimatedFee || 0,
+      responseNotes: request.responseNotes || ''
     })
     setEditingRequest(request)
     setShowAddModal(true)
+  }
+
+  const handleView = (request: any) => {
+    setViewingRequest(request)
+    setShowViewModal(true)
   }
 
   return (
@@ -341,11 +374,11 @@ export default function FOILPage() {
               className="border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
             >
               <option value="ALL">All Statuses</option>
-              <option value="RECEIVED">Received</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="LEGAL_REVIEW">Legal Review</option>
               <option value="COMPLETED">Completed</option>
               <option value="DENIED">Denied</option>
+              <option value="APPEALED">Appealed</option>
             </select>
             <select
               value={urgencyFilter}
@@ -367,7 +400,7 @@ export default function FOILPage() {
               <FileText className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Requests</p>
-                <p className="text-2xl font-bold text-gray-900">{(foilRequests || []).length}</p>
+                <p className="text-2xl font-bold text-gray-900">{foilRequests.length}</p>
               </div>
             </div>
           </div>
@@ -377,7 +410,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(foilRequests || []).filter(r => r.status === 'UNDER_REVIEW').length}
+                  {foilRequests.filter(r => r.status === 'IN_PROGRESS').length}
                 </p>
               </div>
             </div>
@@ -388,7 +421,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(foilRequests || []).filter(r => r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'APPROVED').length}
+                  {foilRequests.filter(r => r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'COMPLETED').length}
                 </p>
               </div>
             </div>
@@ -399,7 +432,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(foilRequests || []).filter(r => r.status === 'APPROVED').length}
+                  {foilRequests.filter(r => r.status === 'COMPLETED').length}
                 </p>
               </div>
             </div>
@@ -414,14 +447,14 @@ export default function FOILPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{request.requestNumber || ''}</h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[request.status as keyof typeof statusStyles]}`}>
-                        {(request.status || '').replace('_', ' ')}
+                      <h3 className="text-lg font-semibold text-gray-900">{request.requestNumber}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[request.status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}`}>
+                        {request.status.replace('_', ' ')}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[request.urgency as keyof typeof urgencyStyles]}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[request.urgency as keyof typeof urgencyStyles] || 'bg-gray-100 text-gray-800'}`}>
                         {request.urgency}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[request.requestType as keyof typeof requestTypeStyles]}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[request.requestType as keyof typeof requestTypeStyles] || 'bg-gray-100 text-gray-800'}`}>
                         {request.requestType}
                       </span>
                       {isOverdue(request.dueDate, request.status) && (
@@ -430,17 +463,21 @@ export default function FOILPage() {
                         </span>
                       )}
                     </div>
-                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{request.subject || ''}</h4>
-                    <p className="text-gray-600 mb-4">{request.description || ''}</p>
-                    {(request.dateRange || '') && (
+                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{request.subject}</h4>
+                    <p className="text-gray-600 mb-4">{request.description}</p>
+                    {request.dateRange && (
                       <p className="text-sm text-gray-500 mb-2">
-                        <strong>Date Range:</strong> {request.dateRange || ''}
+                        <strong>Date Range:</strong> {request.dateRange}
                       </p>
                     )}
                   </div>
                   <div className="ml-4 text-right">
                     <div className="flex space-x-2">
-                      <button className="text-purple-600 hover:text-purple-800 p-2 rounded-md hover:bg-purple-50">
+                      <button
+                        onClick={() => handleView(request)}
+                        className="text-purple-600 hover:text-purple-800 p-2 rounded-md hover:bg-purple-50"
+                        title="View Details"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button 
@@ -460,20 +497,20 @@ export default function FOILPage() {
                     <div className="space-y-2">
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-16">Name:</strong>
-                        <span className="text-gray-600">{request.requesterName || ''}</span>
+                        <span className="text-gray-600">{request.requesterName}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.requesterEmail || ''}</span>
+                        <span className="text-gray-600">{request.requesterEmail}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.requesterPhone || ''}</span>
+                        <span className="text-gray-600">{request.requesterPhone || 'N/A'}</span>
                       </div>
                       {(request.organization || '') && (
                         <div className="flex items-start text-sm">
                           <strong className="text-gray-900 w-16">Org:</strong>
-                          <span className="text-gray-600">{request.organization || ''}</span>
+                          <span className="text-gray-600">{request.organization}</span>
                         </div>
                       )}
                     </div>
@@ -486,13 +523,13 @@ export default function FOILPage() {
                       <div className="flex items-center text-sm">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Received: {request.receivedAt ? new Date(request.receivedAt).toLocaleDateString() : ''}
+                          Received: {request.receivedAt ? new Date(request.receivedAt).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Timer className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Due: {request.dueDate ? new Date(request.dueDate).toLocaleDateString() : ''}
+                          Due: {request.dueDate ? new Date(request.dueDate).toLocaleDateString() : 'N/A'}
                           {request.status !== 'COMPLETED' && request.status !== 'DENIED' && request.dueDate && (
                             <span className={`ml-1 ${getDaysRemaining(request.dueDate) < 0 ? 'text-red-600' : getDaysRemaining(request.dueDate) <= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
                               ({getDaysRemaining(request.dueDate) < 0 ? `${Math.abs(getDaysRemaining(request.dueDate))} days overdue` : `${getDaysRemaining(request.dueDate)} days left`})
@@ -502,11 +539,11 @@ export default function FOILPage() {
                       </div>
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-20">Assigned:</strong>
-                        <span className="text-gray-600">{request.assignedTo || ''}</span>
+                        <span className="text-gray-600">{request.assignedTo || 'Unassigned'}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <strong className="text-gray-900 w-20">Method:</strong>
-                        <span className="text-gray-600">{request.responseMethod || ''}</span>
+                        <span className="text-gray-600">{request.responseMethod || 'N/A'}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Clock className="h-4 w-4 text-gray-400 mr-2" />
@@ -617,33 +654,30 @@ export default function FOILPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
+                  Request Type
                 </label>
                 <select
-                  name="category"
-                  value={formData.category}
+                  name="requestType"
+                  value={formData.requestType}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="">Select Category</option>
-                  <option value="BUDGET">Budget</option>
-                  <option value="PERSONNEL">Personnel</option>
-                  <option value="LEGAL">Legal</option>
-                  <option value="CONTRACTS">Contracts</option>
-                  <option value="ENVIRONMENTAL">Environmental</option>
-                  <option value="OTHER">Other</option>
+                  <option value="DOCUMENTS">Documents</option>
+                  <option value="MEETINGS">Meetings</option>
+                  <option value="DATA">Data</option>
+                  <option value="RECORDS">Records</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title <span className="text-red-500">*</span>
+                Subject <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                name="title"
-                value={formData.title}
+                name="subject"
+                value={formData.subject}
                 onChange={handleInputChange}
                 required
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
@@ -673,27 +707,83 @@ export default function FOILPage() {
                 </label>
                 <input
                   type="text"
-                  name="requestedBy"
-                  value={formData.requestedBy}
+                  name="requesterName"
+                  value={formData.requesterName}
                   onChange={handleInputChange}
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Requester Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
-                  name="requestedByEmail"
-                  value={formData.requestedByEmail}
+                  name="requesterEmail"
+                  value={formData.requesterEmail}
                   onChange={handleInputChange}
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="requesterPhone"
+                  value={formData.requesterPhone}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Organization
+                </label>
+                <input
+                  type="text"
+                  name="organization"
+                  value={formData.organization}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address
+              </label>
+              <textarea
+                name="requesterAddress"
+                value={formData.requesterAddress}
+                onChange={handleInputChange}
+                rows={2}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Requester's mailing address"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date Range
+              </label>
+              <input
+                type="text"
+                name="dateRange"
+                value={formData.dateRange}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="e.g., January 2024 - December 2024"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -707,21 +797,21 @@ export default function FOILPage() {
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="RECEIVED">Received</option>
-                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="IN_PROGRESS">In Progress</option>
                   <option value="LEGAL_REVIEW">Legal Review</option>
-                  <option value="APPROVED">Approved</option>
+                  <option value="COMPLETED">Completed</option>
                   <option value="DENIED">Denied</option>
+                  <option value="APPEALED">Appealed</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority
+                  Urgency
                 </label>
                 <select
-                  name="priority"
-                  value={formData.priority}
+                  name="urgency"
+                  value={formData.urgency}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
                 >
@@ -732,7 +822,7 @@ export default function FOILPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assigned To
@@ -746,7 +836,7 @@ export default function FOILPage() {
                   placeholder="Staff member assigned to handle this request"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Due Date
@@ -757,6 +847,53 @@ export default function FOILPage() {
                   value={formData.dueDate}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Response Method
+                </label>
+                <select
+                  name="responseMethod"
+                  value={formData.responseMethod}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="EMAIL">Email</option>
+                  <option value="MAIL">Mail</option>
+                  <option value="PICKUP">Pickup</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimated Fee ($)
+                </label>
+                <input
+                  type="number"
+                  name="estimatedFee"
+                  value={formData.estimatedFee}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Response Notes
+                </label>
+                <textarea
+                  name="responseNotes"
+                  value={formData.responseNotes}
+                  onChange={handleInputChange}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Internal notes about the request processing"
                 />
               </div>
             </div>
@@ -780,6 +917,169 @@ export default function FOILPage() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* View FOIL Request Modal */}
+      {showViewModal && viewingRequest && (
+        <Modal
+          title={`FOIL Request: ${viewingRequest.requestNumber}`}
+          onClose={() => {
+            setShowViewModal(false)
+            setViewingRequest(null)
+          }}
+        >
+          <div className="space-y-6">
+            {/* Header Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[viewingRequest.status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}`}>
+                    {viewingRequest.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[viewingRequest.urgency as keyof typeof urgencyStyles] || 'bg-gray-100 text-gray-800'}`}>
+                    {viewingRequest.urgency} Urgency
+                  </span>
+                </div>
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[viewingRequest.requestType as keyof typeof requestTypeStyles] || 'bg-gray-100 text-gray-800'}`}>
+                    {viewingRequest.requestType}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Request Details */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{viewingRequest.subject}</h3>
+              <p className="text-gray-600 mb-4">{viewingRequest.description}</p>
+              {viewingRequest.dateRange && (
+                <p className="text-sm text-gray-500">
+                  <strong>Date Range:</strong> {viewingRequest.dateRange}
+                </p>
+              )}
+            </div>
+
+            {/* Requester Information */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3">Requester Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong>Name:</strong> {viewingRequest.requesterName}
+                </div>
+                <div>
+                  <strong>Email:</strong> {viewingRequest.requesterEmail}
+                </div>
+                {viewingRequest.requesterPhone && (
+                  <div>
+                    <strong>Phone:</strong> {viewingRequest.requesterPhone}
+                  </div>
+                )}
+                {viewingRequest.organization && (
+                  <div>
+                    <strong>Organization:</strong> {viewingRequest.organization}
+                  </div>
+                )}
+              </div>
+              {viewingRequest.requesterAddress && (
+                <div className="mt-2 text-sm">
+                  <strong>Address:</strong> {viewingRequest.requesterAddress}
+                </div>
+              )}
+            </div>
+
+            {/* Processing Information */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3">Processing Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong>Received:</strong> {viewingRequest.receivedAt ? new Date(viewingRequest.receivedAt).toLocaleDateString() : 'N/A'}
+                </div>
+                <div>
+                  <strong>Due Date:</strong> {viewingRequest.dueDate ? new Date(viewingRequest.dueDate).toLocaleDateString() : 'N/A'}
+                </div>
+                <div>
+                  <strong>Assigned To:</strong> {viewingRequest.assignedTo || 'Unassigned'}
+                </div>
+                <div>
+                  <strong>Response Method:</strong> {viewingRequest.responseMethod || 'N/A'}
+                </div>
+                <div>
+                  <strong>Time Spent:</strong> {viewingRequest.timeSpentHours || 0} hours
+                </div>
+                <div>
+                  <strong>Estimated Fee:</strong> ${viewingRequest.estimatedFee || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* Legal Information */}
+            {(viewingRequest.exemptionsApplied?.length > 0 || viewingRequest.legalReview) && (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-3">Legal Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <strong>Legal Review Required:</strong> {viewingRequest.legalReview ? 'Yes' : 'No'}
+                  </div>
+                  <div>
+                    <strong>Redactions Required:</strong> {viewingRequest.redactionsRequired ? 'Yes' : 'No'}
+                  </div>
+                  {viewingRequest.exemptionsApplied?.length > 0 && (
+                    <div>
+                      <strong>Exemptions Applied:</strong>
+                      <div className="mt-1">
+                        {viewingRequest.exemptionsApplied.map((exemption: string, index: number) => (
+                          <span key={index} className="inline-block bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded mr-1 mb-1">
+                            {exemption}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Response Notes */}
+            {viewingRequest.responseNotes && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">Response Notes</h4>
+                <p className="text-sm text-gray-600">{viewingRequest.responseNotes}</p>
+              </div>
+            )}
+
+            {/* Denial Reason */}
+            {viewingRequest.denialReason && (
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <h4 className="font-semibold text-red-900 mb-2">Denial Reason</h4>
+                <p className="text-sm text-red-700">{viewingRequest.denialReason}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingRequest)
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
+              >
+                Edit Request
+              </button>
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingRequest(null)
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>
