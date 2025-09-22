@@ -132,7 +132,9 @@ export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
   const [editingCase, setEditingCase] = useState<any>(null)
+  const [viewingCase, setViewingCase] = useState<any>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -200,6 +202,11 @@ export default function CasesPage() {
       lastActivity: case_.lastActivity || new Date().toISOString().split('T')[0]
     })
     setShowAddModal(true)
+  }
+
+  const handleView = (case_: any) => {
+    setViewingCase(case_)
+    setShowViewModal(true)
   }
 
   const handleDelete = (caseId: string) => {
@@ -424,14 +431,21 @@ export default function CasesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button 
+                        <button
+                          onClick={() => handleView(case_)}
+                          className="text-green-600 hover:text-green-900"
+                          title="View Case"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleEdit(case_)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit Case"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(case_.id)}
                           className="text-red-600 hover:text-red-900"
                           title="Delete Case"
@@ -623,6 +637,185 @@ export default function CasesPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* View Case Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingCase(null)
+        }}
+        title="Case Details"
+        size="lg"
+      >
+        {viewingCase && (
+          <div className="space-y-6">
+            {/* Case Header */}
+            <div className="border-b border-gray-200 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {viewingCase.caseNumber}
+                  </h3>
+                  <p className="text-lg text-gray-700 mt-1">
+                    {viewingCase.title}
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyles[viewingCase.status as keyof typeof statusStyles]}`}>
+                    {(viewingCase.status || '').replace('_', ' ')}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${priorityStyles[viewingCase.priority as keyof typeof priorityStyles]}`}>
+                    {viewingCase.priority}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${caseTypeStyles[viewingCase.caseType as keyof typeof caseTypeStyles]}`}>
+                    {viewingCase.caseType}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Case Information Grid */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Case Information
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Date Opened</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.dateOpened ? new Date(viewingCase.dateOpened).toLocaleDateString() : 'Not specified'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Due Date</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.dueDate ? new Date(viewingCase.dueDate).toLocaleDateString() : 'Not set'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Last Activity</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.lastActivity ? new Date(viewingCase.lastActivity).toLocaleDateString() : 'No recent activity'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Estimated Value</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.estimatedValue ? `$${viewingCase.estimatedValue.toLocaleString()}` : 'Not specified'}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Assignment & Team
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Assigned Attorney</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.assignedAttorney || 'Not assigned'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Assigned Paralegal</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.assignedParalegal || 'Not assigned'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Client Department</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.clientDepartment || 'Not specified'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Outside Counsel</dt>
+                    <dd className="text-sm text-gray-900">
+                      {viewingCase.outsideCounsel || 'None'}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Description
+              </h4>
+              <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+                {viewingCase.description || 'No description provided'}
+              </p>
+            </div>
+
+            {/* Next Event */}
+            {viewingCase.nextEvent && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Next Event
+                </h4>
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">
+                        {viewingCase.nextEvent}
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        {viewingCase.nextEventDate ? new Date(viewingCase.nextEventDate).toLocaleDateString() : 'Date TBD'}
+                      </p>
+                    </div>
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {viewingCase.tags && viewingCase.tags.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Tags
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingCase.tags.map((tag: string, index: number) => (
+                    <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingCase(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingCase)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Edit Case
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
