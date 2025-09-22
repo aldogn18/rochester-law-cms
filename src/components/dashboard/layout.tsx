@@ -19,7 +19,13 @@ import {
   CalendarDays,
   FileSearch,
   UserCheck,
-  MessageSquare
+  MessageSquare,
+  BarChart3,
+  Shield,
+  HardDrive,
+  ShieldCheck,
+  Gavel,
+  FileIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -64,9 +70,21 @@ const navigation: NavItem[] = [
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
   },
   {
+    name: 'Notes',
+    href: '/dashboard/notes',
+    icon: MessageSquare,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
+  },
+  {
     name: 'Events',
     href: '/dashboard/events',
     icon: CalendarDays,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'Calendar',
+    href: '/dashboard/calendar',
+    icon: Calendar,
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
   },
   {
@@ -82,28 +100,58 @@ const navigation: NavItem[] = [
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
   },
   {
-    name: 'Notifications',
-    href: '/dashboard/notifications',
-    icon: MessageSquare,
-    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
-  },
-  {
-    name: 'Calendar',
-    href: '/dashboard/calendar',
-    icon: Calendar,
+    name: 'Reports',
+    href: '/dashboard/reports',
+    icon: BarChart3,
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
   },
   {
-    name: 'Users',
-    href: '/dashboard/users',
-    icon: Users,
-    roles: [UserRole.ADMIN, UserRole.ATTORNEY]
+    name: 'Requests',
+    href: '/dashboard/requests',
+    icon: FileSearch,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
   },
   {
-    name: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
+    name: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: Bell,
     roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
+  },
+  {
+    name: 'Files',
+    href: '/dashboard/files',
+    icon: FileIcon,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL, UserRole.CLIENT_DEPT]
+  },
+  {
+    name: 'Evidence',
+    href: '/dashboard/evidence',
+    icon: HardDrive,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'Motions',
+    href: '/dashboard/motions',
+    icon: Gavel,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'eDiscovery',
+    href: '/dashboard/ediscovery',
+    icon: Search,
+    roles: [UserRole.ADMIN, UserRole.ATTORNEY, UserRole.PARALEGAL]
+  },
+  {
+    name: 'Security',
+    href: '/dashboard/security',
+    icon: ShieldCheck,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Admin',
+    href: '/dashboard/admin',
+    icon: Users,
+    roles: [UserRole.ADMIN]
   }
 ]
 
@@ -121,7 +169,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   if (status === 'unauthenticated') {
-    router.push('/auth/signin')
+    router.push('/demo')
     return null
   }
 
@@ -132,7 +180,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
-    router.push('/auth/signin')
+    router.push('/demo')
   }
 
   const getRoleDisplayName = (role: UserRole) => {
