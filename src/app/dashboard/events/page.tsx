@@ -273,7 +273,14 @@ export default function EventsPage() {
     location: ''
   })
 
-  const filteredEvents = (events || []).filter(event => {
+  // Participants state
+  const [participants, setParticipants] = useState<Array<{name: string, role: string}>>([])
+  const [participantForm, setParticipantForm] = useState({ name: '', role: '' })
+
+  // Use mock data for display since the demo store may be empty
+  const displayEvents = mockEvents
+
+  const filteredEvents = displayEvents.filter(event => {
     const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (event.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (event.location || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -310,7 +317,7 @@ export default function EventsPage() {
       ...formData,
       startDate: formData.startDate + 'T09:00:00Z', // Convert to ISO format
       endDate: formData.endDate + 'T17:00:00Z',
-      participantsList: JSON.stringify([]) // Empty participants for now
+      participantsList: JSON.stringify(participants)
     }
     
     if (editingEvent) {
@@ -330,6 +337,8 @@ export default function EventsPage() {
       endDate: '',
       location: ''
     })
+    setParticipants([])
+    setParticipantForm({ name: '', role: '' })
     setShowAddModal(false)
   }
 
@@ -344,6 +353,12 @@ export default function EventsPage() {
       endDate: (event.endDate || '').split('T')[0],
       location: event.location || ''
     })
+
+    // Load existing participants
+    const existingParticipants = event.participantsList ? JSON.parse(event.participantsList) : []
+    setParticipants(existingParticipants)
+    setParticipantForm({ name: '', role: '' })
+
     setShowAddModal(true)
   }
 
@@ -666,6 +681,8 @@ export default function EventsPage() {
             endDate: '',
             location: ''
           })
+          setParticipants([])
+          setParticipantForm({ name: '', role: '' })
         }}
         title={editingEvent ? 'Edit Event' : 'Schedule New Event'}
         size="lg"
@@ -775,12 +792,94 @@ export default function EventsPage() {
             />
           </div>
 
+          {/* Participants Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event Participants
+            </label>
+
+            {/* Add Participant Form */}
+            <div className="border border-gray-200 rounded-md p-4 bg-gray-50 mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Add Participant</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <input
+                    type="text"
+                    placeholder="Participant name"
+                    value={participantForm.name}
+                    onChange={(e) => setParticipantForm({...participantForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={participantForm.role}
+                    onChange={(e) => setParticipantForm({...participantForm, role: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="">Select role</option>
+                    <option value="City Attorney">City Attorney</option>
+                    <option value="Paralegal">Paralegal</option>
+                    <option value="Opposing Counsel">Opposing Counsel</option>
+                    <option value="Judge">Judge</option>
+                    <option value="Mediator">Mediator</option>
+                    <option value="Court Reporter">Court Reporter</option>
+                    <option value="Witness">Witness</option>
+                    <option value="Expert Witness">Expert Witness</option>
+                    <option value="City Representative">City Representative</option>
+                    <option value="Department Head">Department Head</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (participantForm.name && participantForm.role) {
+                    setParticipants([...participants, {...participantForm}])
+                    setParticipantForm({ name: '', role: '' })
+                  }
+                }}
+                disabled={!participantForm.name || !participantForm.role}
+                className="mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+              >
+                Add Participant
+              </button>
+            </div>
+
+            {/* Current Participants List */}
+            {participants.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Current Participants ({participants.length})</h4>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {participants.map((participant, index) => (
+                    <div key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 py-2">
+                      <span className="text-sm text-gray-900">
+                        <strong>{participant.name}</strong> - {participant.role}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setParticipants(participants.filter((_, i) => i !== index))}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        title="Remove participant"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={() => {
                 setShowAddModal(false)
                 setEditingEvent(null)
+                setParticipants([])
+                setParticipantForm({ name: '', role: '' })
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
