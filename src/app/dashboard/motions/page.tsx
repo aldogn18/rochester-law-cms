@@ -370,8 +370,13 @@ export default function MotionBriefBankPage() {
                 <BookOpen className="w-4 h-4 mr-2" />
                 Browse Templates
               </button>
-              <button 
-                onClick={() => alert('Add Motion/Brief functionality - Click detected! This would open a modal to create a new motion or brief.')}
+              <button
+                onClick={() => {
+                  const type = prompt('Enter motion/brief type (Motion to Dismiss, Summary Judgment, etc.):')
+                  if (type) {
+                    alert(`New ${type} motion/brief would be created!`)
+                  }
+                }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />

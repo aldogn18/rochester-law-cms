@@ -259,8 +259,9 @@ export default function NotificationsPage() {
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [viewMode, setViewMode] = useState('ALL') // ALL, UNREAD, ASSIGNMENTS, DEADLINES
+  const [notifications, setNotifications] = useState(mockNotifications)
 
-  const filteredNotifications = mockNotifications.filter(notif => {
+  const filteredNotifications = notifications.filter(notif => {
     const matchesSearch = notif.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          notif.message.toLowerCase().includes(searchTerm.toLowerCase())
                          
@@ -282,20 +283,33 @@ export default function NotificationsPage() {
     return matchesSearch && matchesType && matchesPriority && matchesStatus && matchesView
   })
 
-  const unreadCount = mockNotifications.filter(n => !n.isRead).length
-  const highPriorityCount = mockNotifications.filter(n => n.priority === 'HIGH' && !n.isRead).length
-  const deadlineCount = mockNotifications.filter(n => 
+  const unreadCount = notifications.filter(n => !n.isRead).length
+  const highPriorityCount = notifications.filter(n => n.priority === 'HIGH' && !n.isRead).length
+  const deadlineCount = notifications.filter(n =>
     (n.type === 'DEADLINE' || n.type === 'REMINDER') && !n.isRead
   ).length
 
   const markAsRead = (notificationId: string) => {
-    // In real implementation, this would update the database
-    console.log('Mark as read:', notificationId)
+    setNotifications(prev => prev.map(notif =>
+      notif.id === notificationId
+        ? { ...notif, isRead: true, readAt: new Date().toISOString() }
+        : notif
+    ))
   }
 
   const markAllAsRead = () => {
-    // In real implementation, this would update all notifications
-    console.log('Mark all as read')
+    const now = new Date().toISOString()
+    setNotifications(prev => prev.map(notif =>
+      !notif.isRead
+        ? { ...notif, isRead: true, readAt: now }
+        : notif
+    ))
+  }
+
+  const deleteNotification = (notificationId: string) => {
+    if (confirm('Are you sure you want to delete this notification?')) {
+      setNotifications(prev => prev.filter(notif => notif.id !== notificationId))
+    }
   }
 
   return (
@@ -324,7 +338,10 @@ export default function NotificationsPage() {
                 <Check className="w-4 h-4 mr-2" />
                 Mark All Read
               </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button
+                onClick={() => alert('Notification Settings functionality - Click detected! This would open a settings modal.')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 Notification Settings
               </button>
@@ -434,7 +451,7 @@ export default function NotificationsPage() {
               <Bell className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Notifications</p>
-                <p className="text-2xl font-bold text-gray-900">{mockNotifications.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{notifications.length}</p>
               </div>
             </div>
           </div>
@@ -589,7 +606,11 @@ export default function NotificationsPage() {
                         <Eye className="h-4 w-4" />
                       </Link>
                     )}
-                    <button className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50">
+                    <button
+                      onClick={() => deleteNotification(notification.id)}
+                      className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
+                      title="Delete Notification"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>

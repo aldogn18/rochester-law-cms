@@ -308,8 +308,13 @@ export default function EDiscoveryPage() {
                 <Package className="w-4 h-4 mr-2" />
                 Create Package
               </button>
-              <button 
-                onClick={() => alert('New Collection functionality - Click detected! This would open a modal to create a new eDiscovery collection.')}
+              <button
+                onClick={() => {
+                  const title = prompt('Enter collection title:')
+                  if (title) {
+                    alert(`New eDiscovery collection "${title}" would be created!`)
+                  }
+                }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -614,16 +619,32 @@ export default function EDiscoveryPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 ml-4">
-                    <button className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50">
+                    <button
+                      onClick={() => alert(`Viewing details for ${item.title}`)}
+                      className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                      title="View Details"
+                    >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => alert(`Downloading ${item.title}`)}
+                      className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50"
+                      title="Download"
+                    >
                       <Download className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => alert(`Editing ${item.title}`)}
+                      className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50"
+                      title="Edit"
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50">
+                    <button
+                      onClick={() => alert(`Creating package for ${item.title}`)}
+                      className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50"
+                      title="Create Package"
+                    >
                       <Package className="h-4 w-4" />
                     </button>
                     <button className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50">
