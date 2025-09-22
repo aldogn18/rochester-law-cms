@@ -3,12 +3,11 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
-import { useDemoStore } from '@/lib/demo-store'
 import { Modal } from '@/components/ui/modal'
-import { 
-  Users, 
-  Search, 
-  Plus, 
+import {
+  Users,
+  Search,
+  Plus,
   Calendar,
   Clock,
   DollarSign,
@@ -21,12 +20,40 @@ import {
   ArrowLeft,
   FileText,
   Shield,
-  Timer,
-  XCircle
+  Timer
 } from 'lucide-react'
 
-// Mock FOIL request data
-const mockFOILRequests = [
+// Safe FOIL request type with default values
+interface FOILRequest {
+  id: string
+  requestNumber: string
+  subject: string
+  description: string
+  requesterName: string
+  requesterEmail: string
+  requesterPhone?: string
+  requesterAddress?: string
+  organization?: string
+  requestType: 'DOCUMENTS' | 'MEETINGS' | 'DATA' | 'RECORDS'
+  dateRange?: string
+  status: 'IN_PROGRESS' | 'LEGAL_REVIEW' | 'COMPLETED' | 'DENIED' | 'APPEALED'
+  urgency: 'LOW' | 'MEDIUM' | 'HIGH'
+  receivedAt: string
+  dueDate: string
+  assignedTo?: string
+  responseMethod: 'EMAIL' | 'MAIL' | 'PICKUP'
+  estimatedFee: number
+  responseNotes?: string
+  timeSpentHours: number
+  documentsProvided: number
+  exemptionsApplied: string[]
+  redactionsRequired: boolean
+  legalReview: boolean
+  denialReason?: string
+}
+
+// Initial safe mock data
+const initialFOILRequests: FOILRequest[] = [
   {
     id: 'foil-001',
     requestNumber: 'FOIL-2025-001',
@@ -36,41 +63,22 @@ const mockFOILRequests = [
     dateRange: 'January 2024 - December 2024',
     status: 'IN_PROGRESS',
     urgency: 'MEDIUM',
-    
-    // Requester information
     requesterName: 'John Smith',
     requesterEmail: 'john.smith@email.com',
     requesterPhone: '(585) 555-0123',
     requesterAddress: '123 Main St, Rochester, NY 14604',
     organization: 'Rochester Democrat & Chronicle',
-    
-    // Processing details
     receivedAt: '2025-01-10T09:15:00Z',
-    assignedToId: 'user-008',
-    assignedTo: 'Maria Garcia',
     dueDate: '2025-01-15T17:00:00Z',
+    assignedTo: 'Maria Garcia',
     responseMethod: 'EMAIL',
-    estimatedCompletionDate: '2025-01-14T17:00:00Z',
-    
-    // Fees and processing
     estimatedFee: 25.50,
-    actualFee: null,
-    feeWaived: false,
-    feeWaiverReason: null,
-    
-    // Legal considerations
+    responseNotes: 'Gathering records from multiple departments. Awaiting legal review for personnel information.',
+    timeSpentHours: 3.5,
+    documentsProvided: 0,
     exemptionsApplied: ['Personal Privacy'],
     redactionsRequired: true,
-    legalReview: true,
-    legalReviewNotes: 'Review required for personnel records',
-    
-    // Status tracking
-    timeSpentHours: 3.5,
-    lastActivity: '2025-01-15T14:20:00Z',
-    
-    // Response
-    responseNotes: 'Gathering records from multiple departments. Awaiting legal review for personnel information.',
-    documentsProvided: 0
+    legalReview: true
   },
   {
     id: 'foil-002',
@@ -81,82 +89,53 @@ const mockFOILRequests = [
     dateRange: 'December 1, 2024 - December 31, 2024',
     status: 'COMPLETED',
     urgency: 'LOW',
-    
     requesterName: 'Sarah Johnson',
     requesterEmail: 'sarah.johnson@rochester.edu',
     requesterPhone: '(585) 555-0456',
     requesterAddress: '456 University Ave, Rochester, NY 14607',
     organization: 'University of Rochester - Political Science Dept',
-    
     receivedAt: '2025-01-08T11:30:00Z',
-    assignedToId: 'user-008',
-    assignedTo: 'Maria Garcia',
     dueDate: '2025-01-13T17:00:00Z',
+    assignedTo: 'Maria Garcia',
     responseMethod: 'EMAIL',
-    estimatedCompletionDate: '2025-01-12T17:00:00Z',
-    actualCompletionDate: '2025-01-12T15:45:00Z',
-    
-    estimatedFee: 15.00,
-    actualFee: 12.50,
-    feeWaived: false,
-    feeWaiverReason: null,
-    
+    estimatedFee: 12.50,
+    responseNotes: 'All requested documents provided via email. Payment received.',
+    timeSpentHours: 1.5,
+    documentsProvided: 8,
     exemptionsApplied: [],
     redactionsRequired: false,
-    legalReview: false,
-    legalReviewNotes: null,
-    
-    timeSpentHours: 1.5,
-    lastActivity: '2025-01-12T15:45:00Z',
-    
-    responseNotes: 'All requested documents provided via email. Payment received.',
-    documentsProvided: 8
+    legalReview: false
   },
   {
     id: 'foil-003',
     requestNumber: 'FOIL-2025-003',
     subject: 'Fire Department Response Times',
-    description: 'Statistical data on fire department response times by district for calendar year 2024, including average response times and staffing levels',
+    description: 'Statistical data on fire department response times by district for calendar year 2024',
     requestType: 'DATA',
     dateRange: 'January 1, 2024 - December 31, 2024',
     status: 'DENIED',
     urgency: 'HIGH',
-    
     requesterName: 'Michael Brown',
     requesterEmail: 'mbrown@investigativereporter.com',
     requesterPhone: '(585) 555-0789',
     requesterAddress: '789 Press Ave, Rochester, NY 14610',
     organization: 'Investigative Reporter Network',
-    
     receivedAt: '2025-01-14T16:45:00Z',
-    assignedToId: 'user-004',
-    assignedTo: 'David Thompson',
     dueDate: '2025-01-19T17:00:00Z',
+    assignedTo: 'David Thompson',
     responseMethod: 'MAIL',
-    estimatedCompletionDate: null,
-    actualCompletionDate: '2025-01-16T12:00:00Z',
-    
     estimatedFee: 0,
-    actualFee: 0,
-    feeWaived: true,
-    feeWaiverReason: 'Request denied - no fees applicable',
-    
+    responseNotes: 'Request denied under Public Officers Law §87(2)(f) - disclosure would impair public safety.',
+    timeSpentHours: 2.0,
+    documentsProvided: 0,
     exemptionsApplied: ['Public Safety', 'Law Enforcement'],
     redactionsRequired: false,
     legalReview: true,
-    legalReviewNotes: 'Denial based on public safety exemption - detailed response times could compromise emergency operations',
-    
-    timeSpentHours: 2.0,
-    lastActivity: '2025-01-16T12:00:00Z',
-    
-    responseNotes: 'Request denied under Public Officers Law §87(2)(f) - disclosure would impair public safety. General statistical summaries available upon request.',
-    documentsProvided: 0,
     denialReason: 'Public safety exemption - detailed response time data could compromise emergency operations'
   }
 ]
 
 const statusStyles = {
-  RECEIVED: 'bg-blue-100 text-blue-800',
   IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
   LEGAL_REVIEW: 'bg-orange-100 text-orange-800',
   COMPLETED: 'bg-green-100 text-green-800',
@@ -180,17 +159,17 @@ const requestTypeStyles = {
 export default function FOILPage() {
   const { data: session } = useSession()
 
-  // Use comprehensive mock data as initial state
-  const [foilRequests, setFoilRequests] = useState(mockFOILRequests)
+  // Safe state management
+  const [foilRequests, setFoilRequests] = useState<FOILRequest[]>(initialFOILRequests)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [urgencyFilter, setUrgencyFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingRequest, setEditingRequest] = useState<any>(null)
   const [showViewModal, setShowViewModal] = useState(false)
-  const [viewingRequest, setViewingRequest] = useState<any>(null)
-  
-  // Form state - updated to match mock data structure
+  const [editingRequest, setEditingRequest] = useState<FOILRequest | null>(null)
+  const [viewingRequest, setViewingRequest] = useState<FOILRequest | null>(null)
+
+  // Form state with proper defaults
   const [formData, setFormData] = useState({
     requestNumber: '',
     subject: '',
@@ -200,37 +179,40 @@ export default function FOILPage() {
     requesterPhone: '',
     requesterAddress: '',
     organization: '',
-    requestType: 'DOCUMENTS',
+    requestType: 'DOCUMENTS' as const,
     dateRange: '',
-    status: 'IN_PROGRESS',
-    urgency: 'MEDIUM',
+    status: 'IN_PROGRESS' as const,
+    urgency: 'MEDIUM' as const,
     dueDate: '',
     assignedTo: '',
-    responseMethod: 'EMAIL',
+    responseMethod: 'EMAIL' as const,
     estimatedFee: 0,
     responseNotes: ''
   })
 
+  // Safe filtering with proper checks
   const filteredRequests = foilRequests.filter(req => {
-    const matchesSearch = (req.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (req.requestNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (req.requesterName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (req.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch =
+      req.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.requestNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.description.toLowerCase().includes(searchTerm.toLowerCase())
+
     const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter
     const matchesUrgency = urgencyFilter === 'ALL' || req.urgency === urgencyFilter
 
     return matchesSearch && matchesStatus && matchesUrgency
   })
 
-  const getDaysRemaining = (dueDate: string) => {
+  // Safe utility functions
+  const getDaysRemaining = (dueDate: string): number => {
     const due = new Date(dueDate)
     const now = new Date()
     const diffTime = due.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
 
-  const isOverdue = (dueDate: string, status: string) => {
+  const isOverdue = (dueDate: string, status: string): boolean => {
     return status !== 'COMPLETED' && status !== 'DENIED' && getDaysRemaining(dueDate) < 0
   }
 
@@ -263,24 +245,38 @@ export default function FOILPage() {
     const now = new Date()
     const dueDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
 
-    const requestData = {
-      ...formData,
+    const newRequest: FOILRequest = {
       id: editingRequest ? editingRequest.id : `foil-${Date.now()}`,
       requestNumber: formData.requestNumber || `FOIL-${now.getFullYear()}-${String(foilRequests.length + 1).padStart(3, '0')}`,
-      receivedAt: now.toISOString(),
+      subject: formData.subject,
+      description: formData.description,
+      requesterName: formData.requesterName,
+      requesterEmail: formData.requesterEmail,
+      requesterPhone: formData.requesterPhone,
+      requesterAddress: formData.requesterAddress,
+      organization: formData.organization,
+      requestType: formData.requestType,
+      dateRange: formData.dateRange,
+      status: formData.status,
+      urgency: formData.urgency,
+      receivedAt: editingRequest ? editingRequest.receivedAt : now.toISOString(),
       dueDate: formData.dueDate || dueDate.toISOString().split('T')[0],
-      lastActivity: now.toISOString(),
-      timeSpentHours: 0,
-      documentsProvided: 0,
-      exemptionsApplied: [],
-      redactionsRequired: false,
-      legalReview: false
+      assignedTo: formData.assignedTo,
+      responseMethod: formData.responseMethod,
+      estimatedFee: formData.estimatedFee,
+      responseNotes: formData.responseNotes,
+      timeSpentHours: editingRequest ? editingRequest.timeSpentHours : 0,
+      documentsProvided: editingRequest ? editingRequest.documentsProvided : 0,
+      exemptionsApplied: editingRequest ? editingRequest.exemptionsApplied : [],
+      redactionsRequired: editingRequest ? editingRequest.redactionsRequired : false,
+      legalReview: editingRequest ? editingRequest.legalReview : false,
+      denialReason: editingRequest ? editingRequest.denialReason : undefined
     }
 
     if (editingRequest) {
-      setFoilRequests(prev => prev.map(req => req.id === editingRequest.id ? requestData : req))
+      setFoilRequests(prev => prev.map(req => req.id === editingRequest.id ? newRequest : req))
     } else {
-      setFoilRequests(prev => [...prev, requestData])
+      setFoilRequests(prev => [...prev, newRequest])
     }
 
     resetForm()
@@ -288,35 +284,36 @@ export default function FOILPage() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type } = e.target
+    const finalValue = type === 'number' ? parseFloat(value) || 0 : value
+    setFormData(prev => ({ ...prev, [name]: finalValue }))
   }
 
-  const handleEdit = (request: any) => {
+  const handleEdit = (request: FOILRequest) => {
     setFormData({
-      requestNumber: request.requestNumber || '',
-      subject: request.subject || '',
-      description: request.description || '',
-      requesterName: request.requesterName || '',
-      requesterEmail: request.requesterEmail || '',
+      requestNumber: request.requestNumber,
+      subject: request.subject,
+      description: request.description,
+      requesterName: request.requesterName,
+      requesterEmail: request.requesterEmail,
       requesterPhone: request.requesterPhone || '',
       requesterAddress: request.requesterAddress || '',
       organization: request.organization || '',
-      requestType: request.requestType || 'DOCUMENTS',
+      requestType: request.requestType,
       dateRange: request.dateRange || '',
-      status: request.status || 'IN_PROGRESS',
-      urgency: request.urgency || 'MEDIUM',
-      dueDate: request.dueDate ? request.dueDate.split('T')[0] : '',
+      status: request.status,
+      urgency: request.urgency,
+      dueDate: request.dueDate.split('T')[0],
       assignedTo: request.assignedTo || '',
-      responseMethod: request.responseMethod || 'EMAIL',
-      estimatedFee: request.estimatedFee || 0,
+      responseMethod: request.responseMethod,
+      estimatedFee: request.estimatedFee,
       responseNotes: request.responseNotes || ''
     })
     setEditingRequest(request)
     setShowAddModal(true)
   }
 
-  const handleView = (request: any) => {
+  const handleView = (request: FOILRequest) => {
     setViewingRequest(request)
     setShowViewModal(true)
   }
@@ -340,7 +337,7 @@ export default function FOILPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button 
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
@@ -421,7 +418,7 @@ export default function FOILPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {foilRequests.filter(r => r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'COMPLETED').length}
+                  {foilRequests.filter(r => isOverdue(r.dueDate, r.status)).length}
                 </p>
               </div>
             </div>
@@ -448,13 +445,13 @@ export default function FOILPage() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{request.requestNumber}</h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[request.status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[request.status]}`}>
                         {request.status.replace('_', ' ')}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[request.urgency as keyof typeof urgencyStyles] || 'bg-gray-100 text-gray-800'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[request.urgency]}`}>
                         {request.urgency}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[request.requestType as keyof typeof requestTypeStyles] || 'bg-gray-100 text-gray-800'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[request.requestType]}`}>
                         {request.requestType}
                       </span>
                       {isOverdue(request.dueDate, request.status) && (
@@ -480,9 +477,10 @@ export default function FOILPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleEdit(request)}
                         className="text-gray-600 hover:text-gray-800 p-2 rounded-md hover:bg-gray-50"
+                        title="Edit Request"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -503,11 +501,13 @@ export default function FOILPage() {
                         <Mail className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">{request.requesterEmail}</span>
                       </div>
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.requesterPhone || 'N/A'}</span>
-                      </div>
-                      {(request.organization || '') && (
+                      {request.requesterPhone && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-gray-600">{request.requesterPhone}</span>
+                        </div>
+                      )}
+                      {request.organization && (
                         <div className="flex items-start text-sm">
                           <strong className="text-gray-900 w-16">Org:</strong>
                           <span className="text-gray-600">{request.organization}</span>
@@ -523,14 +523,14 @@ export default function FOILPage() {
                       <div className="flex items-center text-sm">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Received: {request.receivedAt ? new Date(request.receivedAt).toLocaleDateString() : 'N/A'}
+                          Received: {new Date(request.receivedAt).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Timer className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-gray-600">
-                          Due: {request.dueDate ? new Date(request.dueDate).toLocaleDateString() : 'N/A'}
-                          {request.status !== 'COMPLETED' && request.status !== 'DENIED' && request.dueDate && (
+                          Due: {new Date(request.dueDate).toLocaleDateString()}
+                          {request.status !== 'COMPLETED' && request.status !== 'DENIED' && (
                             <span className={`ml-1 ${getDaysRemaining(request.dueDate) < 0 ? 'text-red-600' : getDaysRemaining(request.dueDate) <= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
                               ({getDaysRemaining(request.dueDate) < 0 ? `${Math.abs(getDaysRemaining(request.dueDate))} days overdue` : `${getDaysRemaining(request.dueDate)} days left`})
                             </span>
@@ -542,12 +542,8 @@ export default function FOILPage() {
                         <span className="text-gray-600">{request.assignedTo || 'Unassigned'}</span>
                       </div>
                       <div className="flex items-center text-sm">
-                        <strong className="text-gray-900 w-20">Method:</strong>
-                        <span className="text-gray-600">{request.responseMethod || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
                         <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">{request.timeSpentHours || 0} hours spent</span>
+                        <span className="text-gray-600">{request.timeSpentHours} hours spent</span>
                       </div>
                     </div>
                   </div>
@@ -558,10 +554,7 @@ export default function FOILPage() {
                     <div className="space-y-2">
                       <div className="flex items-center text-sm">
                         <DollarSign className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-600">
-                          Fee: ${request.actualFee || request.estimatedFee || 0}
-                          {request.feeWaived && <span className="text-green-600 ml-1">(Waived)</span>}
-                        </span>
+                        <span className="text-gray-600">Fee: ${request.estimatedFee}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Shield className="h-4 w-4 text-gray-400 mr-2" />
@@ -573,13 +566,13 @@ export default function FOILPage() {
                         <strong className="text-gray-900 w-20">Redactions:</strong>
                         <span className="text-gray-600">{request.redactionsRequired ? 'Required' : 'None'}</span>
                       </div>
-                      {(request.exemptionsApplied || []).length > 0 && (
+                      {request.exemptionsApplied.length > 0 && (
                         <div className="text-sm">
                           <strong className="text-gray-900">Exemptions:</strong>
                           <div className="mt-1 space-y-1">
-                            {(request.exemptionsApplied || []).map((exemption, index) => (
+                            {request.exemptionsApplied.map((exemption, index) => (
                               <span key={index} className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded mr-1">
-                                {exemption || ''}
+                                {exemption}
                               </span>
                             ))}
                           </div>
@@ -590,32 +583,30 @@ export default function FOILPage() {
                 </div>
 
                 {/* Status Notes */}
-                {(request.responseNotes || '') && (
+                {request.responseNotes && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <h5 className="text-sm font-semibold text-gray-900 mb-2">Status Notes</h5>
-                    <p className="text-sm text-gray-600">{request.responseNotes || ''}</p>
+                    <p className="text-sm text-gray-600">{request.responseNotes}</p>
                   </div>
                 )}
 
-                {(request.denialReason || '') && (
+                {request.denialReason && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
                     <h5 className="text-sm font-semibold text-red-900 mb-2">Denial Reason</h5>
-                    <p className="text-sm text-red-700">{request.denialReason || ''}</p>
+                    <p className="text-sm text-red-700">{request.denialReason}</p>
                   </div>
                 )}
 
                 {/* Completion Summary */}
-                {(request.status === 'COMPLETED' || request.status === 'DENIED') && (
+                {request.status === 'COMPLETED' && (
                   <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
                     <div className="flex items-center justify-between text-sm">
                       <div>
-                        <span className="text-gray-600">
-                          Completed: {request.actualCompletionDate ? new Date(request.actualCompletionDate).toLocaleDateString() : 'N/A'}
-                        </span>
+                        <span className="text-gray-600">Request completed successfully</span>
                       </div>
                       <div className="text-right">
                         <span className="text-gray-600">
-                          Documents provided: {request.documentsProvided || 0}
+                          Documents provided: {request.documentsProvided}
                         </span>
                       </div>
                     </div>
@@ -628,323 +619,325 @@ export default function FOILPage() {
       </main>
 
       {/* Add/Edit FOIL Request Modal */}
-      {showAddModal && (
-        <Modal
-          title={editingRequest ? "Edit FOIL Request" : "New FOIL Request"}
-          onClose={() => {
-            setShowAddModal(false)
-            resetForm()
-          }}
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Request Number
-                </label>
-                <input
-                  type="text"
-                  name="requestNumber"
-                  value={formData.requestNumber}
-                  onChange={handleInputChange}
-                  placeholder="Auto-generated if empty"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Request Type
-                </label>
-                <select
-                  name="requestType"
-                  value={formData.requestType}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="DOCUMENTS">Documents</option>
-                  <option value="MEETINGS">Meetings</option>
-                  <option value="DATA">Data</option>
-                  <option value="RECORDS">Records</option>
-                </select>
-              </div>
-            </div>
-
+      <Modal
+        isOpen={showAddModal}
+        title={editingRequest ? "Edit FOIL Request" : "New FOIL Request"}
+        onClose={() => {
+          setShowAddModal(false)
+          resetForm()
+        }}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject <span className="text-red-500">*</span>
+                Request Number
               </label>
               <input
                 type="text"
-                name="subject"
-                value={formData.subject}
+                name="requestNumber"
+                value={formData.requestNumber}
                 onChange={handleInputChange}
-                required
+                placeholder="Auto-generated if empty"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="Brief description of the request"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description <span className="text-red-500">*</span>
+                Request Type
               </label>
-              <textarea
-                name="description"
-                value={formData.description}
+              <select
+                name="requestType"
+                value={formData.requestType}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="DOCUMENTS">Documents</option>
+                <option value="MEETINGS">Meetings</option>
+                <option value="DATA">Data</option>
+                <option value="RECORDS">Records</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="subject"
+              value={formData.subject}
+              onChange={handleInputChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="Brief description of the request"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              required
+              rows={3}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="Detailed description of what information is being requested"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Requester Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="requesterName"
+                value={formData.requesterName}
                 onChange={handleInputChange}
                 required
-                rows={3}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="Detailed description of what information is being requested"
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Requester Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="requesterName"
-                  value={formData.requesterName}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Requester Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  name="requesterEmail"
-                  value={formData.requesterEmail}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="requesterPhone"
-                  value={formData.requesterPhone}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Organization
-                </label>
-                <input
-                  type="text"
-                  name="organization"
-                  value={formData.organization}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+                Requester Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                name="requesterEmail"
+                value={formData.requesterEmail}
+                onChange={handleInputChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="requesterPhone"
+                value={formData.requesterPhone}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Organization
+              </label>
+              <input
+                type="text"
+                name="organization"
+                value={formData.organization}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Address
+            </label>
+            <textarea
+              name="requesterAddress"
+              value={formData.requesterAddress}
+              onChange={handleInputChange}
+              rows={2}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="Requester's mailing address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date Range
+            </label>
+            <input
+              type="text"
+              name="dateRange"
+              value={formData.dateRange}
+              onChange={handleInputChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="e.g., January 2024 - December 2024"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="LEGAL_REVIEW">Legal Review</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="DENIED">Denied</option>
+                <option value="APPEALED">Appealed</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Urgency
+              </label>
+              <select
+                name="urgency"
+                value={formData.urgency}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assigned To
+              </label>
+              <input
+                type="text"
+                name="assignedTo"
+                value={formData.assignedTo}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Staff member assigned to handle this request"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date
+              </label>
+              <input
+                type="date"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Response Method
+              </label>
+              <select
+                name="responseMethod"
+                value={formData.responseMethod}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="EMAIL">Email</option>
+                <option value="MAIL">Mail</option>
+                <option value="PICKUP">Pickup</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Estimated Fee ($)
+              </label>
+              <input
+                type="number"
+                name="estimatedFee"
+                value={formData.estimatedFee}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Response Notes
               </label>
               <textarea
-                name="requesterAddress"
-                value={formData.requesterAddress}
+                name="responseNotes"
+                value={formData.responseNotes}
                 onChange={handleInputChange}
                 rows={2}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="Requester's mailing address"
+                placeholder="Internal notes about the request processing"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date Range
-              </label>
-              <input
-                type="text"
-                name="dateRange"
-                value={formData.dateRange}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="e.g., January 2024 - December 2024"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="LEGAL_REVIEW">Legal Review</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="DENIED">Denied</option>
-                  <option value="APPEALED">Appealed</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Urgency
-                </label>
-                <select
-                  name="urgency"
-                  value={formData.urgency}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Assigned To
-                </label>
-                <input
-                  type="text"
-                  name="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Staff member assigned to handle this request"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  name="dueDate"
-                  value={formData.dueDate}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Response Method
-                </label>
-                <select
-                  name="responseMethod"
-                  value={formData.responseMethod}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="EMAIL">Email</option>
-                  <option value="MAIL">Mail</option>
-                  <option value="PICKUP">Pickup</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Estimated Fee ($)
-                </label>
-                <input
-                  type="number"
-                  name="estimatedFee"
-                  value={formData.estimatedFee}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Response Notes
-                </label>
-                <textarea
-                  name="responseNotes"
-                  value={formData.responseNotes}
-                  onChange={handleInputChange}
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Internal notes about the request processing"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddModal(false)
-                  resetForm()
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
-              >
-                {editingRequest ? "Update Request" : "Create Request"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false)
+                resetForm()
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
+            >
+              {editingRequest ? "Update Request" : "Create Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* View FOIL Request Modal */}
-      {showViewModal && viewingRequest && (
-        <Modal
-          title={`FOIL Request: ${viewingRequest.requestNumber}`}
-          onClose={() => {
-            setShowViewModal(false)
-            setViewingRequest(null)
-          }}
-        >
+      <Modal
+        isOpen={showViewModal && !!viewingRequest}
+        title={viewingRequest ? `FOIL Request: ${viewingRequest.requestNumber}` : "FOIL Request"}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingRequest(null)
+        }}
+        size="lg"
+      >
+        {viewingRequest && (
           <div className="space-y-6">
             {/* Header Information */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[viewingRequest.status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[viewingRequest.status]}`}>
                     {viewingRequest.status.replace('_', ' ')}
                   </span>
                 </div>
                 <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[viewingRequest.urgency as keyof typeof urgencyStyles] || 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyStyles[viewingRequest.urgency]}`}>
                     {viewingRequest.urgency} Urgency
                   </span>
                 </div>
                 <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[viewingRequest.requestType as keyof typeof requestTypeStyles] || 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${requestTypeStyles[viewingRequest.requestType]}`}>
                     {viewingRequest.requestType}
                   </span>
                 </div>
@@ -995,28 +988,28 @@ export default function FOILPage() {
               <h4 className="font-semibold text-gray-900 mb-3">Processing Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <strong>Received:</strong> {viewingRequest.receivedAt ? new Date(viewingRequest.receivedAt).toLocaleDateString() : 'N/A'}
+                  <strong>Received:</strong> {new Date(viewingRequest.receivedAt).toLocaleDateString()}
                 </div>
                 <div>
-                  <strong>Due Date:</strong> {viewingRequest.dueDate ? new Date(viewingRequest.dueDate).toLocaleDateString() : 'N/A'}
+                  <strong>Due Date:</strong> {new Date(viewingRequest.dueDate).toLocaleDateString()}
                 </div>
                 <div>
                   <strong>Assigned To:</strong> {viewingRequest.assignedTo || 'Unassigned'}
                 </div>
                 <div>
-                  <strong>Response Method:</strong> {viewingRequest.responseMethod || 'N/A'}
+                  <strong>Response Method:</strong> {viewingRequest.responseMethod}
                 </div>
                 <div>
-                  <strong>Time Spent:</strong> {viewingRequest.timeSpentHours || 0} hours
+                  <strong>Time Spent:</strong> {viewingRequest.timeSpentHours} hours
                 </div>
                 <div>
-                  <strong>Estimated Fee:</strong> ${viewingRequest.estimatedFee || 0}
+                  <strong>Estimated Fee:</strong> ${viewingRequest.estimatedFee}
                 </div>
               </div>
             </div>
 
             {/* Legal Information */}
-            {(viewingRequest.exemptionsApplied?.length > 0 || viewingRequest.legalReview) && (
+            {(viewingRequest.exemptionsApplied.length > 0 || viewingRequest.legalReview) && (
               <div className="bg-yellow-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-gray-900 mb-3">Legal Information</h4>
                 <div className="space-y-2 text-sm">
@@ -1026,11 +1019,11 @@ export default function FOILPage() {
                   <div>
                     <strong>Redactions Required:</strong> {viewingRequest.redactionsRequired ? 'Yes' : 'No'}
                   </div>
-                  {viewingRequest.exemptionsApplied?.length > 0 && (
+                  {viewingRequest.exemptionsApplied.length > 0 && (
                     <div>
                       <strong>Exemptions Applied:</strong>
                       <div className="mt-1">
-                        {viewingRequest.exemptionsApplied.map((exemption: string, index: number) => (
+                        {viewingRequest.exemptionsApplied.map((exemption, index) => (
                           <span key={index} className="inline-block bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded mr-1 mb-1">
                             {exemption}
                           </span>
@@ -1080,8 +1073,8 @@ export default function FOILPage() {
               </button>
             </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }
