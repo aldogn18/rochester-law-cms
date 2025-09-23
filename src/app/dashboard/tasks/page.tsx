@@ -150,7 +150,7 @@ const priorityStyles = {
 
 export default function TasksPage() {
   const { data: session } = useSession()
-  const { tasks, addTask, updateTask, deleteTask } = useDemoStore()
+  const { addTask, updateTask, deleteTask } = useDemoStore()
   
   // UI state
   const [searchTerm, setSearchTerm] = useState('')
@@ -197,7 +197,7 @@ export default function TasksPage() {
     return status !== 'COMPLETED' && status !== 'CANCELLED' && getDaysRemaining(dueDate) < 0
   }
 
-  const uniqueAssignees = Array.from(new Set(displayTasks.map(task => task.assignedTo || 'Unassigned')))
+  const uniqueAssignees = Array.from(new Set(tasks.map(task => task.assignedTo || 'Unassigned')))
   
   // Form handlers
   const handleSubmit = (e: React.FormEvent) => {
@@ -361,7 +361,7 @@ export default function TasksPage() {
               <Calendar className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{displayTasks.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{tasks.length}</p>
               </div>
             </div>
           </div>
@@ -371,7 +371,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {displayTasks.filter(t => t.status === 'IN_PROGRESS').length}
+                  {tasks.filter(t => t.status === 'IN_PROGRESS').length}
                 </p>
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {displayTasks.filter(t => isOverdue(t.dueDate, t.status)).length}
+                  {tasks.filter(t => isOverdue(t.dueDate, t.status)).length}
                 </p>
               </div>
             </div>
@@ -393,7 +393,7 @@ export default function TasksPage() {
               <div className="ml-3">
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {displayTasks.filter(t => t.status === 'COMPLETED').length}
+                  {tasks.filter(t => t.status === 'COMPLETED').length}
                 </p>
               </div>
             </div>
