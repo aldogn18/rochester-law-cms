@@ -264,6 +264,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState(mockNotifications)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [editingNotification, setEditingNotification] = useState<any>(null)
   const [viewingNotification, setViewingNotification] = useState<any>(null)
 
@@ -278,6 +279,36 @@ export default function NotificationsPage() {
     expiresAt: '',
     actionUrl: '',
     actionText: ''
+  })
+
+  // Notification settings state
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    smsNotifications: false,
+    desktopNotifications: true,
+    soundEnabled: true,
+    autoMarkAsRead: false,
+    digestFrequency: 'DAILY', // INSTANT, HOURLY, DAILY, WEEKLY
+    quietHoursEnabled: false,
+    quietHoursStart: '18:00',
+    quietHoursEnd: '08:00',
+    weekendsQuiet: false,
+    notificationTypes: {
+      DEADLINE: true,
+      ASSIGNMENT: true,
+      REMINDER: true,
+      WARNING: true,
+      ERROR: true,
+      SUCCESS: true,
+      INFO: false
+    },
+    priorityFilters: {
+      CRITICAL: true,
+      HIGH: true,
+      MEDIUM: true,
+      LOW: false
+    }
   })
 
   const filteredNotifications = notifications.filter(notif => {
@@ -437,7 +468,7 @@ export default function NotificationsPage() {
                 Mark All Read
               </button>
               <button
-                onClick={() => alert('Notification Settings functionality - Click detected! This would open a settings modal.')}
+                onClick={() => setShowSettingsModal(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
                 <Settings className="w-4 h-4 mr-2" />
@@ -1047,6 +1078,318 @@ export default function NotificationsPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Notification Settings Modal */}
+      <Modal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        title="Notification Settings"
+        size="xl"
+      >
+        <div className="space-y-6">
+          {/* General Settings */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Email Notifications</label>
+                  <p className="text-sm text-gray-500">Receive notifications via email</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, emailNotifications: !prev.emailNotifications}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.emailNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Push Notifications</label>
+                  <p className="text-sm text-gray-500">Browser push notifications</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, pushNotifications: !prev.pushNotifications}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.pushNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">SMS Notifications</label>
+                  <p className="text-sm text-gray-500">Critical notifications via SMS</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, smsNotifications: !prev.smsNotifications}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.smsNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.smsNotifications ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Desktop Notifications</label>
+                  <p className="text-sm text-gray-500">System desktop notifications</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, desktopNotifications: !prev.desktopNotifications}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.desktopNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.desktopNotifications ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Sound Notifications</label>
+                  <p className="text-sm text-gray-500">Play sound for new notifications</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, soundEnabled: !prev.soundEnabled}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.soundEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.soundEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Auto Mark as Read</label>
+                  <p className="text-sm text-gray-500">Automatically mark notifications as read when viewed</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, autoMarkAsRead: !prev.autoMarkAsRead}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.autoMarkAsRead ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.autoMarkAsRead ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Digest Frequency */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Frequency</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Digest Frequency
+              </label>
+              <select
+                value={notificationSettings.digestFrequency}
+                onChange={(e) => setNotificationSettings(prev => ({...prev, digestFrequency: e.target.value}))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="INSTANT">Instant (Real-time)</option>
+                <option value="HOURLY">Hourly Digest</option>
+                <option value="DAILY">Daily Digest</option>
+                <option value="WEEKLY">Weekly Digest</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Quiet Hours */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quiet Hours</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Enable Quiet Hours</label>
+                  <p className="text-sm text-gray-500">Suppress non-critical notifications during specified hours</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, quietHoursEnabled: !prev.quietHoursEnabled}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.quietHoursEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              {notificationSettings.quietHoursEnabled && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={notificationSettings.quietHoursStart}
+                      onChange={(e) => setNotificationSettings(prev => ({...prev, quietHoursStart: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      value={notificationSettings.quietHoursEnd}
+                      onChange={(e) => setNotificationSettings(prev => ({...prev, quietHoursEnd: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Weekend Quiet Mode</label>
+                  <p className="text-sm text-gray-500">Suppress non-critical notifications on weekends</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationSettings(prev => ({...prev, weekendsQuiet: !prev.weekendsQuiet}))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationSettings.weekendsQuiet ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notificationSettings.weekendsQuiet ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Notification Types */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Types</h3>
+            <div className="space-y-3">
+              {Object.entries(notificationSettings.notificationTypes).map(([type, enabled]) => (
+                <div key={type} className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">{type}</label>
+                    <p className="text-sm text-gray-500">
+                      {type === 'DEADLINE' && 'Filing deadlines and time-sensitive tasks'}
+                      {type === 'ASSIGNMENT' && 'New case and task assignments'}
+                      {type === 'REMINDER' && 'Meeting and event reminders'}
+                      {type === 'WARNING' && 'Important system warnings'}
+                      {type === 'ERROR' && 'Critical system errors'}
+                      {type === 'SUCCESS' && 'Task completion confirmations'}
+                      {type === 'INFO' && 'General informational messages'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotificationSettings(prev => ({
+                      ...prev,
+                      notificationTypes: {
+                        ...prev.notificationTypes,
+                        [type]: !enabled
+                      }
+                    }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      enabled ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Priority Filters */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Priority Filters</h3>
+            <div className="space-y-3">
+              {Object.entries(notificationSettings.priorityFilters).map(([priority, enabled]) => (
+                <div key={priority} className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">{priority} Priority</label>
+                    <p className="text-sm text-gray-500">
+                      {priority === 'CRITICAL' && 'Urgent issues requiring immediate attention'}
+                      {priority === 'HIGH' && 'Important matters with near-term deadlines'}
+                      {priority === 'MEDIUM' && 'Standard notifications and updates'}
+                      {priority === 'LOW' && 'Optional updates and informational messages'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotificationSettings(prev => ({
+                      ...prev,
+                      priorityFilters: {
+                        ...prev.priorityFilters,
+                        [priority]: !enabled
+                      }
+                    }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      enabled ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setShowSettingsModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Here you would save the settings to the backend
+                alert('Notification settings saved successfully!')
+                setShowSettingsModal(false)
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Save Settings
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
