@@ -171,10 +171,11 @@ export default function TasksPage() {
     caseId: ''
   })
 
-  // Use mock data for display since the demo store may be empty
-  const [displayTasks, setDisplayTasks] = useState(mockTasks)
+  // Use store data with fallback to mock data
+  const storeTasks = useDemoStore(state => state.tasks)
+  const tasks = storeTasks.length > 0 ? storeTasks : mockTasks
 
-  const filteredTasks = displayTasks.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
@@ -237,27 +238,33 @@ export default function TasksPage() {
   }
 
   const handleStartTask = (taskId: string) => {
-    setDisplayTasks(prev => prev.map(task =>
-      task.id === taskId
-        ? { ...task, status: 'IN_PROGRESS', startDate: new Date().toISOString() }
-        : task
-    ))
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      updateTask(taskId, {
+        status: 'IN_PROGRESS',
+        startDate: new Date().toISOString()
+      })
+    }
   }
 
   const handlePauseTask = (taskId: string) => {
-    setDisplayTasks(prev => prev.map(task =>
-      task.id === taskId
-        ? { ...task, status: 'ON_HOLD' }
-        : task
-    ))
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      updateTask(taskId, {
+        status: 'ON_HOLD'
+      })
+    }
   }
 
   const handleCompleteTask = (taskId: string) => {
-    setDisplayTasks(prev => prev.map(task =>
-      task.id === taskId
-        ? { ...task, status: 'COMPLETED', completedDate: new Date().toISOString(), progressPercent: 100 }
-        : task
-    ))
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      updateTask(taskId, {
+        status: 'COMPLETED',
+        completedDate: new Date().toISOString(),
+        progressPercent: 100
+      })
+    }
   }
 
   const handleDelete = (taskId: string) => {
@@ -554,6 +561,13 @@ export default function TasksPage() {
                       title="Edit Task"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(task.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                      title="Delete Task"
+                    >
+                      Delete
                     </button>
                   </div>
                   <div className="text-xs text-gray-500">

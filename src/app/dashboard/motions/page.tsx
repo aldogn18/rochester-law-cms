@@ -474,7 +474,10 @@ export default function MotionBriefBankPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center">
+              <button
+                onClick={() => alert('Browse Templates functionality - this would navigate to a templates library or open a templates browser modal.')}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              >
                 <BookOpen className="w-4 h-4 mr-2" />
                 Browse Templates
               </button>
@@ -779,7 +782,20 @@ export default function MotionBriefBankPage() {
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => alert(`Downloading ${brief.title}`)}
+                      onClick={() => {
+                        // Create a downloadable text file
+                        const content = `${brief.title}\n\n${brief.content}\n\nKeywords: ${brief.keywords?.join(', ') || 'None'}\nTags: ${brief.tags?.join(', ') || 'None'}\nApproval Status: ${brief.approvalStatus}\nCreated: ${new Date(brief.createdDate).toLocaleDateString()}`
+                        const blob = new Blob([content], { type: 'text/plain' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${brief.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                        alert(`Downloaded: ${brief.title}`)
+                      }}
                       className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50"
                       title="Download"
                     >

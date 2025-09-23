@@ -236,6 +236,8 @@ export default function InterAgencyRequestsPage() {
   const [requests, setRequests] = useState(mockInterAgencyRequests)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showResponseModal, setShowResponseModal] = useState(false)
+  const [respondingRequest, setRespondingRequest] = useState<any>(null)
   const [editingRequest, setEditingRequest] = useState<any>(null)
   const [viewingRequest, setViewingRequest] = useState<any>(null)
 
@@ -252,6 +254,15 @@ export default function InterAgencyRequestsPage() {
     serviceRequested: '',
     expectedOutcome: '',
     deadline: ''
+  })
+
+  // Response form state
+  const [responseData, setResponseData] = useState({
+    responseMessage: '',
+    status: 'IN_PROGRESS',
+    estimatedCompletion: '',
+    assignedAttorney: '',
+    notes: ''
   })
 
   // CRUD Functions
@@ -329,6 +340,49 @@ export default function InterAgencyRequestsPage() {
     if (confirm('Are you sure you want to delete this request?')) {
       setRequests(prev => prev.filter(req => req.id !== requestId))
     }
+  }
+
+  const handleSendResponse = (request: any) => {
+    setRespondingRequest(request)
+    setResponseData({
+      responseMessage: '',
+      status: 'IN_PROGRESS',
+      estimatedCompletion: '',
+      assignedAttorney: '',
+      notes: ''
+    })
+    setShowResponseModal(true)
+  }
+
+  const handleResponseSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const updatedRequest = {
+      ...respondingRequest,
+      status: responseData.status,
+      responseDate: new Date().toISOString(),
+      responseMessage: responseData.responseMessage,
+      estimatedCompletion: responseData.estimatedCompletion,
+      assignedAttorney: responseData.assignedAttorney,
+      internalNotes: responseData.notes
+    }
+
+    setRequests(prev => prev.map(req =>
+      req.id === respondingRequest.id ? updatedRequest : req
+    ))
+
+    // Reset response form
+    setResponseData({
+      responseMessage: '',
+      status: 'IN_PROGRESS',
+      estimatedCompletion: '',
+      assignedAttorney: '',
+      notes: ''
+    })
+    setRespondingRequest(null)
+    setShowResponseModal(false)
+
+    alert('Response sent successfully!')
   }
 
   const createRequest = () => {
@@ -733,7 +787,7 @@ export default function InterAgencyRequestsPage() {
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => alert(`Sending response for request ${request.requestNumber}`)}
+                      onClick={() => handleSendResponse(request)}
                       className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50"
                       title="Send Response"
                     >
@@ -1017,6 +1071,138 @@ export default function InterAgencyRequestsPage() {
               </button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Send Response Modal */}
+      <Modal
+        isOpen={showResponseModal}
+        onClose={() => {
+          setShowResponseModal(false)
+          setRespondingRequest(null)
+          setResponseData({
+            responseMessage: '',
+            status: 'IN_PROGRESS',
+            estimatedCompletion: '',
+            assignedAttorney: '',
+            notes: ''
+          })
+        }}
+        title={`Send Response - ${respondingRequest?.requestNumber}`}
+        size="lg"
+      >
+        {respondingRequest && (
+          <form onSubmit={handleResponseSubmit} className="space-y-6">
+            {/* Request Summary */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Request Summary</h4>
+              <p className="text-sm text-gray-600 mb-1">
+                <span className="font-medium">From:</span> {respondingRequest.requestingDept}
+              </p>
+              <p className="text-sm text-gray-600 mb-1">
+                <span className="font-medium">Subject:</span> {respondingRequest.subject}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Service Requested:</span> {respondingRequest.serviceRequested}
+              </p>
+            </div>
+
+            {/* Response Message */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Response Message *
+              </label>
+              <textarea
+                required
+                value={responseData.responseMessage}
+                onChange={(e) => setResponseData({...responseData, responseMessage: e.target.value})}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your response message..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={responseData.status}
+                  onChange={(e) => setResponseData({...responseData, status: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="ON_HOLD">On Hold</option>
+                  <option value="REQUIRES_CLARIFICATION">Requires Clarification</option>
+                </select>
+              </div>
+
+              {/* Assigned Attorney */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned Attorney
+                </label>
+                <input
+                  type="text"
+                  value={responseData.assignedAttorney}
+                  onChange={(e) => setResponseData({...responseData, assignedAttorney: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter assigned attorney name"
+                />
+              </div>
+            </div>
+
+            {/* Estimated Completion */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Estimated Completion Date
+              </label>
+              <input
+                type="date"
+                value={responseData.estimatedCompletion}
+                onChange={(e) => setResponseData({...responseData, estimatedCompletion: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* Internal Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Internal Notes (Optional)
+              </label>
+              <textarea
+                value={responseData.notes}
+                onChange={(e) => setResponseData({...responseData, notes: e.target.value})}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Add any internal notes or comments..."
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResponseModal(false)
+                  setRespondingRequest(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              >
+                Send Response
+              </button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>
