@@ -137,6 +137,40 @@ export interface DemoUser {
   mfaEnabled: boolean
 }
 
+export interface DemoEDiscoveryItem {
+  id: string
+  title: string
+  description: string
+  status: 'COLLECTED' | 'PROCESSED' | 'REVIEWED' | 'PRODUCED' | 'WITHHELD'
+  custodian: string
+  sourceLocation: string
+  collectionDate: string
+  fileSize: number
+  caseId?: string
+  caseNumber?: string
+  caseTitle?: string
+  legalHoldId: string
+  isPrivileged: boolean
+  privilegeNotes?: string
+  isRedacted: boolean
+  redactionLevel?: 'NONE' | 'MINIMAL' | 'PARTIAL' | 'SUBSTANTIAL' | 'COMPLETE'
+  redactionNotes?: string
+  originalPath: string
+  preservedPath: string
+  fileHash: string
+  mimeType: string
+  metadata: {
+    itemCount: number
+    dateRange: string
+    fileTypes: string[]
+    keywords: string[]
+    reviewedBy?: string
+    reviewDate?: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
 interface DemoStore {
   // Data
   events: DemoEvent[]
@@ -148,6 +182,7 @@ interface DemoStore {
   notes: DemoNote[]
   notifications: DemoNotification[]
   users: DemoUser[]
+  eDiscoveryItems: DemoEDiscoveryItem[]
   
   // UI state
   showSuccessMessage: string | null
@@ -190,6 +225,10 @@ interface DemoStore {
   updateUser: (id: string, user: Partial<DemoUser>) => void
   deleteUser: (id: string) => void
   toggleUserStatus: (id: string) => void
+
+  addEDiscoveryItem: (item: Omit<DemoEDiscoveryItem, 'id'>) => void
+  updateEDiscoveryItem: (id: string, item: Partial<DemoEDiscoveryItem>) => void
+  deleteEDiscoveryItem: (id: string) => void
   
   // Utility actions
   showSuccess: (message: string) => void
@@ -579,6 +618,75 @@ const initialDocuments: DemoDocument[] = [
   }
 ]
 
+const initialEDiscoveryItems: DemoEDiscoveryItem[] = [
+  {
+    id: 'ediscovery-001',
+    title: 'Environmental Department Email Archive 2023-2024',
+    description: 'Complete email archive from Environmental Services Department containing correspondence with waste management vendors',
+    status: 'REVIEWED',
+    custodian: 'Environmental Services Department',
+    sourceLocation: 'Exchange Server - env-dept-mailbox',
+    collectionDate: '2025-01-10T08:00:00Z',
+    fileSize: 15728640000, // 15GB
+    caseId: 'case-003',
+    caseNumber: 'CASE-2025-003',
+    caseTitle: 'Environmental Compliance Review',
+    legalHoldId: 'LH-2025-001',
+    isPrivileged: false,
+    privilegeNotes: '',
+    isRedacted: true,
+    redactionLevel: 'PARTIAL',
+    redactionNotes: 'Personal information and unrelated business discussions redacted. Attorney-client privileged communications preserved separately.',
+    originalPath: '/exchange/env-dept/mailbox.pst',
+    preservedPath: '/ediscovery/preserved/env-dept-emails-2024.pst',
+    fileHash: 'sha256:a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890',
+    mimeType: 'application/vnd.ms-outlook',
+    metadata: {
+      itemCount: 12847,
+      dateRange: '2023-01-01 to 2024-12-31',
+      fileTypes: ['email', 'attachment'],
+      keywords: ['waste', 'vendor', 'contract', 'compliance', 'environmental'],
+      reviewedBy: 'David Thompson',
+      reviewDate: '2025-01-14T16:30:00Z'
+    },
+    createdAt: '2025-01-10T08:00:00Z',
+    updatedAt: '2025-01-14T16:30:00Z'
+  },
+  {
+    id: 'ediscovery-002',
+    title: 'Planning Department Meeting Recordings',
+    description: 'Video recordings of planning department meetings discussing downtown development project',
+    status: 'PROCESSED',
+    custodian: 'John Smith - Planning Director',
+    sourceLocation: 'Planning Dept Network Drive - /meetings/recordings',
+    collectionDate: '2025-01-12T10:00:00Z',
+    fileSize: 8589934592, // 8GB
+    caseId: 'case-001',
+    caseNumber: 'CASE-2025-001',
+    caseTitle: 'City Planning Dispute - Downtown Development',
+    legalHoldId: 'LH-2025-002',
+    isPrivileged: false,
+    privilegeNotes: '',
+    isRedacted: false,
+    redactionLevel: 'NONE',
+    redactionNotes: '',
+    originalPath: '/planning/meetings/2024-2025/',
+    preservedPath: '/ediscovery/preserved/planning-meetings-2024-2025/',
+    fileHash: 'sha256:b2c3d4e5f6a78901bcdef2345678901bcdef2345678901bcdef2345678901bc',
+    mimeType: 'video/mp4',
+    metadata: {
+      itemCount: 24,
+      dateRange: '2024-06-01 to 2025-01-01',
+      fileTypes: ['mp4', 'transcription'],
+      keywords: ['downtown', 'development', 'zoning', 'approval'],
+      reviewedBy: 'Michael Chen',
+      reviewDate: '2025-01-13T14:20:00Z'
+    },
+    createdAt: '2025-01-12T10:00:00Z',
+    updatedAt: '2025-01-13T14:20:00Z'
+  }
+]
+
 export const useDemoStore = create<DemoStore>()(
   persist(
     (set, get) => ({
@@ -592,6 +700,7 @@ export const useDemoStore = create<DemoStore>()(
       notes: initialNotes,
       notifications: initialNotifications,
       users: initialUsers,
+      eDiscoveryItems: initialEDiscoveryItems,
       
       // UI state
       showSuccessMessage: null,
@@ -760,10 +869,28 @@ export const useDemoStore = create<DemoStore>()(
       })),
       
       toggleUserStatus: (id) => set((state) => ({
-        users: state.users.map(user => 
+        users: state.users.map(user =>
           user.id === id ? { ...user, isActive: !user.isActive } : user
         ),
         showSuccessMessage: 'User status updated successfully!'
+      })),
+
+      // E-Discovery actions
+      addEDiscoveryItem: (itemData) => set((state) => ({
+        eDiscoveryItems: [...state.eDiscoveryItems, { ...itemData, id: generateId() }],
+        showSuccessMessage: 'E-Discovery item created successfully!'
+      })),
+
+      updateEDiscoveryItem: (id, itemData) => set((state) => ({
+        eDiscoveryItems: state.eDiscoveryItems.map(item =>
+          item.id === id ? { ...item, ...itemData } : item
+        ),
+        showSuccessMessage: 'E-Discovery item updated successfully!'
+      })),
+
+      deleteEDiscoveryItem: (id) => set((state) => ({
+        eDiscoveryItems: state.eDiscoveryItems.filter(item => item.id !== id),
+        showSuccessMessage: 'E-Discovery item deleted successfully!'
       })),
       
       // Utility actions
@@ -781,6 +908,7 @@ export const useDemoStore = create<DemoStore>()(
         notes: initialNotes,
         notifications: initialNotifications,
         users: initialUsers,
+        eDiscoveryItems: initialEDiscoveryItems,
         showSuccessMessage: 'Demo data reset successfully!'
       })
     }),
@@ -795,7 +923,8 @@ export const useDemoStore = create<DemoStore>()(
         persons: state.persons,
         notes: state.notes,
         notifications: state.notifications,
-        users: state.users
+        users: state.users,
+        eDiscoveryItems: state.eDiscoveryItems
       })
     }
   )

@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Modal } from '@/components/ui/modal'
 import { 
   Building2, 
   Search, 
@@ -231,7 +232,124 @@ export default function InterAgencyRequestsPage() {
   const [urgencyFilter, setUrgencyFilter] = useState('ALL')
   const [viewMode, setViewMode] = useState('ALL') // ALL, MY_ASSIGNMENTS, PENDING
 
-  const filteredRequests = mockInterAgencyRequests.filter(request => {
+  // State management
+  const [requests, setRequests] = useState(mockInterAgencyRequests)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [editingRequest, setEditingRequest] = useState<any>(null)
+  const [viewingRequest, setViewingRequest] = useState<any>(null)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    subject: '',
+    description: '',
+    urgency: 'MEDIUM',
+    requestingDept: '',
+    requestorName: '',
+    requestorEmail: '',
+    requestorPhone: '',
+    requestType: 'LEGAL_ASSISTANCE',
+    serviceRequested: '',
+    expectedOutcome: '',
+    deadline: ''
+  })
+
+  // CRUD Functions
+  const handleView = (request: any) => {
+    setViewingRequest(request)
+    setShowViewModal(true)
+  }
+
+  const handleEdit = (request: any) => {
+    setEditingRequest(request)
+    setFormData({
+      subject: request.subject || '',
+      description: request.description || '',
+      urgency: request.urgency || 'MEDIUM',
+      requestingDept: request.requestingDept || '',
+      requestorName: request.requestorName || '',
+      requestorEmail: request.requestorEmail || '',
+      requestorPhone: request.requestorPhone || '',
+      requestType: request.requestType || 'LEGAL_ASSISTANCE',
+      serviceRequested: request.serviceRequested || '',
+      expectedOutcome: request.expectedOutcome || '',
+      deadline: request.deadline ? request.deadline.split('T')[0] : ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const requestData = {
+      ...formData,
+      id: editingRequest ? editingRequest.id : `req-${Date.now()}`,
+      requestNumber: editingRequest ? editingRequest.requestNumber : `IAR-${new Date().getFullYear()}-${String(requests.length + 1).padStart(3, '0')}`,
+      deadline: formData.deadline ? formData.deadline + 'T17:00:00Z' : null,
+      status: editingRequest ? editingRequest.status : 'RECEIVED',
+      assignedAttorneyId: editingRequest ? editingRequest.assignedAttorneyId : null,
+      assignedAttorney: editingRequest ? editingRequest.assignedAttorney : null,
+      responseProvided: editingRequest ? editingRequest.responseProvided : null,
+      responseDate: editingRequest ? editingRequest.responseDate : null,
+      outcomeAchieved: editingRequest ? editingRequest.outcomeAchieved : null,
+      caseId: editingRequest ? editingRequest.caseId : null,
+      caseNumber: editingRequest ? editingRequest.caseNumber : null,
+      createdAt: editingRequest ? editingRequest.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: editingRequest ? editingRequest.attachments : []
+    }
+
+    if (editingRequest) {
+      setRequests(prev => prev.map(req =>
+        req.id === editingRequest.id ? { ...req, ...requestData } : req
+      ))
+    } else {
+      setRequests(prev => [requestData, ...prev])
+    }
+
+    // Reset form
+    setFormData({
+      subject: '',
+      description: '',
+      urgency: 'MEDIUM',
+      requestingDept: '',
+      requestorName: '',
+      requestorEmail: '',
+      requestorPhone: '',
+      requestType: 'LEGAL_ASSISTANCE',
+      serviceRequested: '',
+      expectedOutcome: '',
+      deadline: ''
+    })
+    setEditingRequest(null)
+    setShowCreateModal(false)
+  }
+
+  const handleDelete = (requestId: string) => {
+    if (confirm('Are you sure you want to delete this request?')) {
+      setRequests(prev => prev.filter(req => req.id !== requestId))
+    }
+  }
+
+  const createRequest = () => {
+    setEditingRequest(null)
+    setFormData({
+      subject: '',
+      description: '',
+      urgency: 'MEDIUM',
+      requestingDept: '',
+      requestorName: '',
+      requestorEmail: '',
+      requestorPhone: '',
+      requestType: 'LEGAL_ASSISTANCE',
+      serviceRequested: '',
+      expectedOutcome: '',
+      deadline: ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const filteredRequests = requests.filter(request => {
     const matchesSearch = request.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.requestingDept.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -252,16 +370,16 @@ export default function InterAgencyRequestsPage() {
     return matchesSearch && matchesStatus && matchesType && matchesUrgency
   })
 
-  const uniqueDepartments = [...new Set(mockInterAgencyRequests.map(req => req.requestingDept))]
-  
-  const totalRequests = mockInterAgencyRequests.length
-  const pendingRequests = mockInterAgencyRequests.filter(req => 
+  const uniqueDepartments = [...new Set(requests.map(req => req.requestingDept))]
+
+  const totalRequests = requests.length
+  const pendingRequests = requests.filter(req =>
     req.status === 'RECEIVED' || req.status === 'ASSIGNED' || req.status === 'IN_PROGRESS'
   ).length
-  const myAssignments = mockInterAgencyRequests.filter(req => 
+  const myAssignments = requests.filter(req =>
     req.assignedAttorney === session?.user?.name
   ).length
-  const urgentRequests = mockInterAgencyRequests.filter(req => 
+  const urgentRequests = requests.filter(req =>
     req.urgency === 'HIGH' && req.status !== 'COMPLETED'
   ).length
 
@@ -285,12 +403,7 @@ export default function InterAgencyRequestsPage() {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => {
-                  const type = prompt('Enter request type (Legal Analysis, Document Review, etc.):')
-                  if (type) {
-                    alert(`New ${type} request would be created!`)
-                  }
-                }}
+                onClick={createRequest}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -605,21 +718,47 @@ export default function InterAgencyRequestsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 ml-4">
-                    <button className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50">
+                    <button
+                      onClick={() => handleView(request)}
+                      className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50"
+                      title="View Request Details"
+                    >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => handleEdit(request)}
+                      className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                      title="Edit Request"
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50">
+                    <button
+                      onClick={() => alert(`Sending response for request ${request.requestNumber}`)}
+                      className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50"
+                      title="Send Response"
+                    >
                       <Send className="h-4 w-4" />
                     </button>
                     {request.status !== 'COMPLETED' && (
-                      <button className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50">
+                      <button
+                        onClick={() => {
+                          setRequests(prev => prev.map(req =>
+                            req.id === request.id
+                              ? { ...req, status: 'COMPLETED', responseDate: new Date().toISOString() }
+                              : req
+                          ))
+                        }}
+                        className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50"
+                        title="Mark as Complete"
+                      >
                         <Check className="h-4 w-4" />
                       </button>
                     )}
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => handleDelete(request.id)}
+                      className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
+                      title="Delete Request"
+                    >
                       <Archive className="h-4 w-4" />
                     </button>
                   </div>
@@ -629,6 +768,257 @@ export default function InterAgencyRequestsPage() {
           })}
         </div>
       </main>
+
+      {/* Create/Edit Request Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditingRequest(null)
+        }}
+        title={editingRequest ? 'Edit Request' : 'Create New Request'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <input
+                type="text"
+                required
+                value={formData.subject}
+                onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
+              <select
+                value={formData.requestType}
+                onChange={(e) => setFormData({...formData, requestType: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="LEGAL_ASSISTANCE">Legal Assistance</option>
+                <option value="DOCUMENT_REVIEW">Document Review</option>
+                <option value="CONTRACT_REVIEW">Contract Review</option>
+                <option value="TRAINING">Training</option>
+                <option value="CONSULTATION">Consultation</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              required
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Requesting Department</label>
+              <input
+                type="text"
+                required
+                value={formData.requestingDept}
+                onChange={(e) => setFormData({...formData, requestingDept: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Urgency</label>
+              <select
+                value={formData.urgency}
+                onChange={(e) => setFormData({...formData, urgency: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Requestor Name</label>
+              <input
+                type="text"
+                required
+                value={formData.requestorName}
+                onChange={(e) => setFormData({...formData, requestorName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={formData.requestorEmail}
+                onChange={(e) => setFormData({...formData, requestorEmail: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={formData.requestorPhone}
+                onChange={(e) => setFormData({...formData, requestorPhone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Service Requested</label>
+            <textarea
+              required
+              value={formData.serviceRequested}
+              onChange={(e) => setFormData({...formData, serviceRequested: e.target.value})}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Expected Outcome</label>
+              <textarea
+                value={formData.expectedOutcome}
+                onChange={(e) => setFormData({...formData, expectedOutcome: e.target.value})}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+              <input
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({...formData, deadline: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false)
+                setEditingRequest(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingRequest ? 'Update Request' : 'Create Request'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* View Request Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingRequest(null)
+        }}
+        title="Request Details"
+        size="lg"
+      >
+        {viewingRequest && (
+          <div className="space-y-4">
+            <div className="border-b border-gray-200 pb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{viewingRequest.requestNumber}</h3>
+                  <p className="text-lg text-gray-700">{viewingRequest.subject}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${urgencyStyles[viewingRequest.urgency as keyof typeof urgencyStyles]}`}>
+                    {viewingRequest.urgency}
+                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[viewingRequest.status as keyof typeof statusStyles]}`}>
+                    {viewingRequest.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Request Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="font-medium">Type:</span> {viewingRequest.requestType}</div>
+                  <div><span className="font-medium">Department:</span> {viewingRequest.requestingDept}</div>
+                  <div><span className="font-medium">Deadline:</span> {viewingRequest.deadline ? new Date(viewingRequest.deadline).toLocaleDateString() : 'Not set'}</div>
+                  <div><span className="font-medium">Created:</span> {new Date(viewingRequest.createdAt).toLocaleString()}</div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="font-medium">Requestor:</span> {viewingRequest.requestorName}</div>
+                  <div><span className="font-medium">Email:</span> {viewingRequest.requestorEmail}</div>
+                  <div><span className="font-medium">Phone:</span> {viewingRequest.requestorPhone || 'Not provided'}</div>
+                  {viewingRequest.assignedAttorney && <div><span className="font-medium">Assigned:</span> {viewingRequest.assignedAttorney}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewingRequest.description}</p>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Service Requested</h4>
+              <p className="text-sm text-gray-700">{viewingRequest.serviceRequested}</p>
+            </div>
+
+            {viewingRequest.expectedOutcome && (
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Expected Outcome</h4>
+                <p className="text-sm text-gray-700">{viewingRequest.expectedOutcome}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingRequest(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingRequest)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Edit Request
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

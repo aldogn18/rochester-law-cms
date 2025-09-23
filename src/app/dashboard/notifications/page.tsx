@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Modal } from '@/components/ui/modal'
 import { 
   Bell, 
   Search, 
@@ -11,6 +12,7 @@ import {
   Clock,
   User,
   Eye,
+  Edit,
   Check,
   X,
   ArrowLeft,
@@ -260,6 +262,23 @@ export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [viewMode, setViewMode] = useState('ALL') // ALL, UNREAD, ASSIGNMENTS, DEADLINES
   const [notifications, setNotifications] = useState(mockNotifications)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [editingNotification, setEditingNotification] = useState<any>(null)
+  const [viewingNotification, setViewingNotification] = useState<any>(null)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    message: '',
+    type: 'INFO',
+    priority: 'MEDIUM',
+    targetRole: '',
+    targetDept: '',
+    expiresAt: '',
+    actionUrl: '',
+    actionText: ''
+  })
 
   const filteredNotifications = notifications.filter(notif => {
     const matchesSearch = notif.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -310,6 +329,85 @@ export default function NotificationsPage() {
     if (confirm('Are you sure you want to delete this notification?')) {
       setNotifications(prev => prev.filter(notif => notif.id !== notificationId))
     }
+  }
+
+  const handleView = (notification: any) => {
+    setViewingNotification(notification)
+    setShowViewModal(true)
+  }
+
+  const handleEdit = (notification: any) => {
+    setEditingNotification(notification)
+    setFormData({
+      title: notification.title || '',
+      message: notification.message || '',
+      type: notification.type || 'INFO',
+      priority: notification.priority || 'MEDIUM',
+      targetRole: notification.roleTargeted || '',
+      targetDept: notification.deptTargeted || '',
+      expiresAt: notification.expiresAt ? notification.expiresAt.split('T')[0] : '',
+      actionUrl: notification.actionUrl || '',
+      actionText: notification.actionText || ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const notificationData = {
+      ...formData,
+      id: editingNotification ? editingNotification.id : `notif-${Date.now()}`,
+      userId: session?.user?.id || '',
+      user: session?.user?.name || '',
+      roleTargeted: formData.targetRole || null,
+      deptTargeted: formData.targetDept || null,
+      isRead: false,
+      readAt: null,
+      scheduledFor: null,
+      expiresAt: formData.expiresAt ? formData.expiresAt + 'T23:59:59Z' : null,
+      createdAt: editingNotification ? editingNotification.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    if (editingNotification) {
+      setNotifications(prev => prev.map(notif =>
+        notif.id === editingNotification.id ? { ...notif, ...notificationData } : notif
+      ))
+    } else {
+      setNotifications(prev => [notificationData, ...prev])
+    }
+
+    // Reset form
+    setFormData({
+      title: '',
+      message: '',
+      type: 'INFO',
+      priority: 'MEDIUM',
+      targetRole: '',
+      targetDept: '',
+      expiresAt: '',
+      actionUrl: '',
+      actionText: ''
+    })
+    setEditingNotification(null)
+    setShowCreateModal(false)
+  }
+
+  const createNotification = () => {
+    setEditingNotification(null)
+    setFormData({
+      title: '',
+      message: '',
+      type: 'INFO',
+      priority: 'MEDIUM',
+      targetRole: '',
+      targetDept: '',
+      expiresAt: '',
+      actionUrl: '',
+      actionText: ''
+    })
+    setShowCreateModal(true)
   }
 
   return (
@@ -607,6 +705,20 @@ export default function NotificationsPage() {
                       </Link>
                     )}
                     <button
+                      onClick={() => handleView(notification)}
+                      className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50"
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(notification)}
+                      className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                      title="Edit Notification"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => deleteNotification(notification.id)}
                       className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
                       title="Delete Notification"
@@ -631,6 +743,311 @@ export default function NotificationsPage() {
           })}
         </div>
       </main>
+
+      {/* Create/Edit Notification Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditingNotification(null)
+          setFormData({
+            title: '',
+            message: '',
+            type: 'INFO',
+            priority: 'MEDIUM',
+            targetRole: '',
+            targetDept: '',
+            expiresAt: '',
+            actionUrl: '',
+            actionText: ''
+          })
+        }}
+        title={editingNotification ? 'Edit Notification' : 'Create New Notification'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter notification title"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Message
+            </label>
+            <textarea
+              required
+              value={formData.message}
+              onChange={(e) => setFormData({...formData, message: e.target.value})}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter notification message"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="INFO">Info</option>
+                <option value="WARNING">Warning</option>
+                <option value="ERROR">Error</option>
+                <option value="SUCCESS">Success</option>
+                <option value="REMINDER">Reminder</option>
+                <option value="DEADLINE">Deadline</option>
+                <option value="ASSIGNMENT">Assignment</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Target Role (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.targetRole}
+                onChange={(e) => setFormData({...formData, targetRole: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Attorney, Paralegal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Target Department (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.targetDept}
+                onChange={(e) => setFormData({...formData, targetDept: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Legal Department"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Expires On (Optional)
+            </label>
+            <input
+              type="date"
+              value={formData.expiresAt}
+              onChange={(e) => setFormData({...formData, expiresAt: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Action URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={formData.actionUrl}
+                onChange={(e) => setFormData({...formData, actionUrl: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Action Text (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.actionText}
+                onChange={(e) => setFormData({...formData, actionText: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., View Details"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false)
+                setEditingNotification(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingNotification ? 'Update Notification' : 'Create Notification'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* View Notification Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingNotification(null)
+        }}
+        title="Notification Details"
+        size="lg"
+      >
+        {viewingNotification && (
+          <div className="space-y-6">
+            <div className="border-b border-gray-200 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {viewingNotification.title}
+                </h3>
+                <div className="flex space-x-2">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${notificationTypeStyles[viewingNotification.type as keyof typeof notificationTypeStyles]}`}>
+                    {viewingNotification.type}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${priorityStyles[viewingNotification.priority as keyof typeof priorityStyles]}`}>
+                    {viewingNotification.priority}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Message
+              </h4>
+              <p className="text-gray-900 bg-gray-50 p-3 rounded-md">
+                {viewingNotification.message}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Target Information
+                </h4>
+                <div className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Target User</dt>
+                    <dd className="text-sm text-gray-900">{viewingNotification.user || 'Not specified'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Target Role</dt>
+                    <dd className="text-sm text-gray-900">{viewingNotification.roleTargeted || 'Not specified'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Target Department</dt>
+                    <dd className="text-sm text-gray-900">{viewingNotification.deptTargeted || 'Not specified'}</dd>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Timing Information
+                </h4>
+                <div className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Created</dt>
+                    <dd className="text-sm text-gray-900">{new Date(viewingNotification.createdAt).toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Updated</dt>
+                    <dd className="text-sm text-gray-900">{new Date(viewingNotification.updatedAt).toLocaleString()}</dd>
+                  </div>
+                  {viewingNotification.expiresAt && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Expires</dt>
+                      <dd className="text-sm text-gray-900">{new Date(viewingNotification.expiresAt).toLocaleString()}</dd>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {(viewingNotification.actionUrl || viewingNotification.actionText) && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Action Information
+                </h4>
+                <div className="space-y-2">
+                  {viewingNotification.actionUrl && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Action URL</dt>
+                      <dd className="text-sm text-blue-600 break-all">{viewingNotification.actionUrl}</dd>
+                    </div>
+                  )}
+                  {viewingNotification.actionText && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Action Text</dt>
+                      <dd className="text-sm text-gray-900">{viewingNotification.actionText}</dd>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingNotification(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingNotification)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Edit Notification
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

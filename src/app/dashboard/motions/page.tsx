@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Modal } from '@/components/ui/modal'
 import { 
   Scale, 
   Search, 
@@ -312,7 +313,114 @@ export default function MotionBriefBankPage() {
   const [approvalFilter, setApprovalFilter] = useState('ALL')
   const [viewMode, setViewMode] = useState('LIST') // LIST, POPULAR, MY_BRIEFS
 
-  const filteredBriefs = mockMotionBriefs.filter(brief => {
+  // State management
+  const [motions, setMotions] = useState(mockMotionBriefs)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [editingMotion, setEditingMotion] = useState<any>(null)
+  const [viewingMotion, setViewingMotion] = useState<any>(null)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: 'Motion to Dismiss',
+    subCategory: '',
+    practiceArea: 'General',
+    content: '',
+    keywords: '',
+    tags: ''
+  })
+
+  // CRUD Functions
+  const handleView = (motion: any) => {
+    setViewingMotion(motion)
+    setShowViewModal(true)
+  }
+
+  const handleEdit = (motion: any) => {
+    setEditingMotion(motion)
+    setFormData({
+      title: motion.title || '',
+      description: motion.description || '',
+      category: motion.category || 'Motion to Dismiss',
+      subCategory: motion.subCategory || '',
+      practiceArea: motion.practiceArea || 'General',
+      content: motion.content || '',
+      keywords: motion.keywords ? motion.keywords.join(', ') : '',
+      tags: motion.tags ? motion.tags.join(', ') : ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const motionData = {
+      ...formData,
+      id: editingMotion ? editingMotion.id : `motion-${Date.now()}`,
+      keywords: formData.keywords.split(',').map(k => k.trim()).filter(k => k),
+      tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+      authorId: session?.user?.id || '',
+      authorName: session?.user?.name || '',
+      authorRole: 'Attorney',
+      isApproved: editingMotion ? editingMotion.isApproved : false,
+      approvedById: editingMotion ? editingMotion.approvedById : null,
+      approvedByName: editingMotion ? editingMotion.approvedByName : null,
+      approvedDate: editingMotion ? editingMotion.approvedDate : null,
+      timesUsed: editingMotion ? editingMotion.timesUsed : 0,
+      lastUsed: editingMotion ? editingMotion.lastUsed : null,
+      avgRating: editingMotion ? editingMotion.avgRating : 0,
+      totalRatings: editingMotion ? editingMotion.totalRatings : 0,
+      createdAt: editingMotion ? editingMotion.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    if (editingMotion) {
+      setMotions(prev => prev.map(motion =>
+        motion.id === editingMotion.id ? { ...motion, ...motionData } : motion
+      ))
+    } else {
+      setMotions(prev => [motionData, ...prev])
+    }
+
+    // Reset form
+    setFormData({
+      title: '',
+      description: '',
+      category: 'Motion to Dismiss',
+      subCategory: '',
+      practiceArea: 'General',
+      content: '',
+      keywords: '',
+      tags: ''
+    })
+    setEditingMotion(null)
+    setShowCreateModal(false)
+  }
+
+  const handleDelete = (motionId: string) => {
+    if (confirm('Are you sure you want to delete this motion/brief?')) {
+      setMotions(prev => prev.filter(motion => motion.id !== motionId))
+    }
+  }
+
+  const createMotion = () => {
+    setEditingMotion(null)
+    setFormData({
+      title: '',
+      description: '',
+      category: 'Motion to Dismiss',
+      subCategory: '',
+      practiceArea: 'General',
+      content: '',
+      keywords: '',
+      tags: ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const filteredBriefs = motions.filter(brief => {
     const matchesSearch = brief.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          brief.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          brief.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -371,12 +479,7 @@ export default function MotionBriefBankPage() {
                 Browse Templates
               </button>
               <button
-                onClick={() => {
-                  const type = prompt('Enter motion/brief type (Motion to Dismiss, Summary Judgment, etc.):')
-                  if (type) {
-                    alert(`New ${type} motion/brief would be created!`)
-                  }
-                }}
+                onClick={createMotion}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -668,20 +771,57 @@ export default function MotionBriefBankPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 ml-4">
-                    <button className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50">
+                    <button
+                      onClick={() => handleView(brief)}
+                      className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50"
+                      title="View Motion/Brief"
+                    >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => alert(`Downloading ${brief.title}`)}
+                      className="text-purple-600 hover:text-purple-900 p-2 rounded-md hover:bg-purple-50"
+                      title="Download"
+                    >
                       <Download className="h-4 w-4" />
                     </button>
-                    <button className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(brief.content)
+                        alert('Motion/Brief content copied to clipboard!')
+                      }}
+                      className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                      title="Copy Content"
+                    >
                       <Copy className="h-4 w-4" />
                     </button>
-                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50">
+                    <button
+                      onClick={() => handleEdit(brief)}
+                      className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-50"
+                      title="Edit Motion/Brief"
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="text-yellow-600 hover:text-yellow-900 p-2 rounded-md hover:bg-yellow-50">
+                    <button
+                      onClick={() => {
+                        setMotions(prev => prev.map(motion =>
+                          motion.id === brief.id
+                            ? { ...motion, timesUsed: motion.timesUsed + 1, lastUsed: new Date().toISOString() }
+                            : motion
+                        ))
+                        alert(`Marked ${brief.title} as used`)
+                      }}
+                      className="text-yellow-600 hover:text-yellow-900 p-2 rounded-md hover:bg-yellow-50"
+                      title="Mark as Used"
+                    >
                       <Star className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(brief.id)}
+                      className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
+                      title="Delete Motion/Brief"
+                    >
+                      <Hash className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -690,6 +830,251 @@ export default function MotionBriefBankPage() {
           })}
         </div>
       </main>
+
+      {/* Create/Edit Motion Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditingMotion(null)
+        }}
+        title={editingMotion ? 'Edit Motion/Brief' : 'Create New Motion/Brief'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              required
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>Motion to Dismiss</option>
+                <option>Summary Judgment</option>
+                <option>Discovery</option>
+                <option>Contract</option>
+                <option>Employment</option>
+                <option>Administrative</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sub-Category</label>
+              <input
+                type="text"
+                value={formData.subCategory}
+                onChange={(e) => setFormData({...formData, subCategory: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Practice Area</label>
+              <select
+                value={formData.practiceArea}
+                onChange={(e) => setFormData({...formData, practiceArea: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>General</option>
+                <option>Municipal Law</option>
+                <option>Employment Law</option>
+                <option>Contract Law</option>
+                <option>Administrative Law</option>
+                <option>Real Estate</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+            <textarea
+              required
+              value={formData.content}
+              onChange={(e) => setFormData({...formData, content: e.target.value})}
+              rows={10}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              placeholder="Enter the motion/brief content here..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma-separated)</label>
+              <input
+                type="text"
+                value={formData.keywords}
+                onChange={(e) => setFormData({...formData, keywords: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="motion, dismiss, jurisdiction"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+              <input
+                type="text"
+                value={formData.tags}
+                onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="civil-procedure, federal-court"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false)
+                setEditingMotion(null)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {editingMotion ? 'Update Motion/Brief' : 'Create Motion/Brief'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* View Motion Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false)
+          setViewingMotion(null)
+        }}
+        title="Motion/Brief Details"
+        size="xl"
+      >
+        {viewingMotion && (
+          <div className="space-y-4">
+            <div className="border-b border-gray-200 pb-4">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{viewingMotion.title}</h3>
+              <p className="text-gray-700">{viewingMotion.description}</p>
+              <div className="flex space-x-2 mt-3">
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                  {viewingMotion.category}
+                </span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                  {viewingMotion.practiceArea}
+                </span>
+                {viewingMotion.isApproved && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                    ✓ Approved
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="font-medium">Sub-Category:</span> {viewingMotion.subCategory}</div>
+                  <div><span className="font-medium">Author:</span> {viewingMotion.authorName}</div>
+                  <div><span className="font-medium">Times Used:</span> {viewingMotion.timesUsed}</div>
+                  <div><span className="font-medium">Created:</span> {new Date(viewingMotion.createdAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Rating & Usage</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="font-medium">Average Rating:</span> {viewingMotion.avgRating.toFixed(1)}/5.0</div>
+                  <div><span className="font-medium">Total Ratings:</span> {viewingMotion.totalRatings}</div>
+                  {viewingMotion.lastUsed && (
+                    <div><span className="font-medium">Last Used:</span> {new Date(viewingMotion.lastUsed).toLocaleDateString()}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Keywords</h4>
+              <div className="flex flex-wrap gap-1">
+                {viewingMotion.keywords?.map((keyword: string, index: number) => (
+                  <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Tags</h4>
+              <div className="flex flex-wrap gap-1">
+                {viewingMotion.tags?.map((tag: string, index: number) => (
+                  <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Content</h4>
+              <div className="bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto">
+                <pre className="text-sm whitespace-pre-wrap font-mono">{viewingMotion.content}</pre>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  setViewingMotion(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(viewingMotion.content)
+                  alert('Content copied to clipboard!')
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Copy Content
+              </button>
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  handleEdit(viewingMotion)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Edit Motion/Brief
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
