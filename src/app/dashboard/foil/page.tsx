@@ -927,8 +927,8 @@ export default function FOILPage() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[viewingRequest.status]}`}>
-                    {viewingRequest.status.replace('_', ' ')}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[viewingRequest?.status] || 'bg-gray-100 text-gray-800'}`}>
+                    {viewingRequest?.status?.replace('_', ' ') || 'Unknown'}
                   </span>
                 </div>
                 <div>
